@@ -50,17 +50,18 @@
   };
 </script>
 
-  <meta name="description" content="Welcome to Hexo! This is your very first post. Check documentation for more info. If you get any problems when using Hexo, you can find the answer in troubleshooting or you can ask me on GitHub.">
+  <meta name="description" content="利用硬件保证系统、数据的安全需求十分迫切，各CPU厂商都推出了自己的解决方案。本文就Intel提出的SGX(Software  Guard Extention)展开讨论（之后不出意外会写关于ARM的TrustZone的介绍）。在说具体的技术之前，我们先来讲讲关于安全的故事。最初考虑到安全性问题，大多数的CPU架构，包括Intel的x86都实现了保护环（Protection Ring）机制来保护操作">
+<meta name="keywords" content="硬件辅助安全,TrustZone">
 <meta property="og:type" content="article">
-<meta property="og:title" content="Hello World">
-<meta property="og:url" content="http:&#x2F;&#x2F;120.78.209.0&#x2F;2019&#x2F;10&#x2F;24&#x2F;hello-world&#x2F;index.html">
+<meta property="og:title" content="硬件辅助安全：（1）Intel SGX技术背景">
+<meta property="og:url" content="http:&#x2F;&#x2F;120.78.209.0&#x2F;2019&#x2F;11&#x2F;06&#x2F;Intel_SGX%E6%8A%80%E6%9C%AF%E8%83%8C%E6%99%AF&#x2F;index.html">
 <meta property="og:site_name" content="一丁点儿">
-<meta property="og:description" content="Welcome to Hexo! This is your very first post. Check documentation for more info. If you get any problems when using Hexo, you can find the answer in troubleshooting or you can ask me on GitHub.">
+<meta property="og:description" content="利用硬件保证系统、数据的安全需求十分迫切，各CPU厂商都推出了自己的解决方案。本文就Intel提出的SGX(Software  Guard Extention)展开讨论（之后不出意外会写关于ARM的TrustZone的介绍）。在说具体的技术之前，我们先来讲讲关于安全的故事。最初考虑到安全性问题，大多数的CPU架构，包括Intel的x86都实现了保护环（Protection Ring）机制来保护操作">
 <meta property="og:locale" content="en">
-<meta property="og:updated_time" content="2019-10-24T12:43:30.319Z">
+<meta property="og:updated_time" content="2019-11-06T12:47:48.799Z">
 <meta name="twitter:card" content="summary">
 
-<link rel="canonical" href="http://120.78.209.0/2019/10/24/hello-world/">
+<link rel="canonical" href="http://120.78.209.0/2019/11/06/Intel_SGX%E6%8A%80%E6%9C%AF%E8%83%8C%E6%99%AF/">
 
 
 <script id="page-configurations">
@@ -74,7 +75,7 @@
   };
 </script>
 
-  <title>Hello World | 一丁点儿</title>
+  <title>硬件辅助安全：（1）Intel SGX技术背景 | 一丁点儿</title>
   
 
 
@@ -210,7 +211,7 @@
   
   
   <article itemscope itemtype="http://schema.org/Article" class="post-block " lang="en">
-    <link itemprop="mainEntityOfPage" href="http://120.78.209.0/2019/10/24/hello-world/">
+    <link itemprop="mainEntityOfPage" href="http://120.78.209.0/2019/11/06/Intel_SGX%E6%8A%80%E6%9C%AF%E8%83%8C%E6%99%AF/">
 
     <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
       <meta itemprop="image" content="/images/avatar_name.gif">
@@ -223,7 +224,7 @@
     </span>
       <header class="post-header">
         <h1 class="post-title" itemprop="name headline">
-          Hello World
+          硬件辅助安全：（1）Intel SGX技术背景
         </h1>
 
         <div class="post-meta">
@@ -232,8 +233,20 @@
                 <i class="fa fa-calendar-o"></i>
               </span>
               <span class="post-meta-item-text">Posted on</span>
+              
 
-              <time title="Created: 2019-10-24 20:43:30" itemprop="dateCreated datePublished" datetime="2019-10-24T20:43:30+08:00">2019-10-24</time>
+              <time title="Created: 2019-11-06 20:43:16 / Modified: 20:47:48" itemprop="dateCreated datePublished" datetime="2019-11-06T20:43:16+08:00">2019-11-06</time>
+            </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              <span class="post-meta-item-text">In</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/%E7%B3%BB%E7%BB%9F%E5%AE%89%E5%85%A8/" itemprop="url" rel="index">
+                    <span itemprop="name">系统安全</span>
+                  </a>
+                </span>
             </span>
 
           
@@ -249,14 +262,14 @@
                 <i class="fa fa-file-word-o"></i>
               </span>
                 <span class="post-meta-item-text">Symbols count in article: </span>
-              <span>357</span>
+              <span>2.8k</span>
             </span>
             <span class="post-meta-item" title="Reading time">
               <span class="post-meta-item-icon">
                 <i class="fa fa-clock-o"></i>
               </span>
                 <span class="post-meta-item-text">Reading time &asymp;</span>
-              <span>1 mins.</span>
+              <span>3 mins.</span>
             </span>
 
         </div>
@@ -268,19 +281,20 @@
     <div class="post-body" itemprop="articleBody">
 
       
-        <p>Welcome to <a href="https://hexo.io/" target="_blank" rel="noopener">Hexo</a>! This is your very first post. Check <a href="https://hexo.io/docs/" target="_blank" rel="noopener">documentation</a> for more info. If you get any problems when using Hexo, you can find the answer in <a href="https://hexo.io/docs/troubleshooting.html" target="_blank" rel="noopener">troubleshooting</a> or you can ask me on <a href="https://github.com/hexojs/hexo/issues" target="_blank" rel="noopener">GitHub</a>.</p><a id="more"></a>
-<h2 id="Quick-Start"><a href="#Quick-Start" class="headerlink" title="Quick Start"></a>Quick Start</h2><h3 id="Create-a-new-post"><a href="#Create-a-new-post" class="headerlink" title="Create a new post"></a>Create a new post</h3><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">$ hexo new <span class="string">"My New Post"</span></span><br></pre></td></tr></table></figure>
+        <p>利用硬件保证系统、数据的安全需求十分迫切，各CPU厂商都推出了自己的解决方案。本文就Intel提出的SGX(Software  Guard Extention)展开讨论（之后不出意外会写关于ARM的TrustZone的介绍）。</p><p>在说具体的技术之前，我们先来讲讲关于安全的故事。最初考虑到安全性问题，大多数的CPU架构，包括Intel的x86都实现了保护环（Protection Ring）机制来保护操作系统免受用户软件的威胁，或是任意占用系统资源等。操作系统一般都运行在RING-0上，其可以访问所有的硬件资源。用户程序则运行在RING-3上，需要利用OS提供的系统调用来访问硬件资源。操作系统作为特权管理者，可以限制普通的应用程序无法随意访问硬件资源。</p><a id="more"></a>
 
-<p>More info: <a href="https://hexo.io/docs/writing.html" target="_blank" rel="noopener">Writing</a></p>
-<h3 id="Run-server"><a href="#Run-server" class="headerlink" title="Run server"></a>Run server</h3><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">$ hexo server</span><br></pre></td></tr></table></figure>
-
-<p>More info: <a href="https://hexo.io/docs/server.html" target="_blank" rel="noopener">Server</a></p>
-<h3 id="Generate-static-files"><a href="#Generate-static-files" class="headerlink" title="Generate static files"></a>Generate static files</h3><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">$ hexo generate</span><br></pre></td></tr></table></figure>
-
-<p>More info: <a href="https://hexo.io/docs/generating.html" target="_blank" rel="noopener">Generating</a></p>
-<h3 id="Deploy-to-remote-sites"><a href="#Deploy-to-remote-sites" class="headerlink" title="Deploy to remote sites"></a>Deploy to remote sites</h3><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">$ hexo deploy</span><br></pre></td></tr></table></figure>
-
-<p>More info: <a href="https://hexo.io/docs/deployment.html" target="_blank" rel="noopener">Deployment</a></p>
+<p>但是在<strong>云计算的时代，很多公司以及企业都将自己的服务转移到第三方提供的云计算中心去</strong>，例如谷歌、亚马逊、阿里云等。这样就会产生一种不信任问题：首先如果只是用来存储数据问题不是很大，因为客户可以在数据传输到云上之前就进行加密；但是<strong>如果客户需要在云上进行计算，总会要将数据解密后加载到云上虚拟机内存中</strong>。虚拟机可以确保我们的数据不会被其他虚拟机所访问，但是云提供商的虚拟机管理程序却可以轻易访问到我们虚拟机中的数据。</p>
+<p>不信任问题真的很难受，要解决安全问题，就需要用性能来换。你看最初的网络通信协议多么简单，最后硬是提出并实现多种机制来确保数据的机密性与完整性。不过攻守这个过程倒是挺令人热血沸腾的。</p>
+<p>哎扯远了，回到正题：那么我们怎么来确保云服务提供商不会窃取我们的机密性数据呢？实际上问题很明显，我们不能信任操作系统、虚拟机管理软件（VMM OR Hyperbvisor）甚至BIOS，所以我们要实现一种机制来确保上面提到的特权软硬件无法访问到用户程序需要受保护的数据。像TPM<sup>1</sup>(Trusted Platform Module)以及Intel 的TXT<sup>2</sup>(Trusted Execution Technology)硬件技术可以被用来在操作系统或虚拟机的启动过程创建一个信任基（root-of-trust），从而为软件创建一个可信执行环境（TEE, Trusted Execution Enviroment）。（关于1，2的内容可见附录）这些技术在某种程度上可以提供某些完整性保证，但不能保护TEE内部运行的软件的<strong>机密性(Confidentiality)</strong>。</p>
+<p>而在移动端呢，ARM的TrustZone技术也同样能提供一个可信执行环境，这个环境能保护特权级软件软件免受不信任的用户程序的入侵。本质上TZ就是将处理器、内存等资源划分为两个部分，一部分提供给Rich OS使用（正常世界也称为非安全世界，保留现在操作系统的富足功能），另一部分提供给TEE OS使用（安全世界，减少OS的代码量，同时存储例如指纹、密码等数据），从硬件上实现了正常世界不能随意访问安全世界的内存等资源。在这种情况下，就算Rich OS被攻击，也不会影响到机密数据。但TZ不能满足我们当前需求，因为TZ不能做到保护用户程序免受特权级程序的影响。</p>
+<p>为了给用户空间软件提供所需的机密性和完整性保证，英特尔在原来的TXT基础上进一步提升，开发了新的硬件安全功能Intel SGX（在x64指令集上进行扩展，在第6代CPU中才有），该技术应该能够为用户空间软件创建TEE来免于特权软件的影响。</p>
+<p>最后，我们来总结一下。我们应该能明白Intel SGX与 ARM TZ在需求与解决应用问题之间的区别了。Intel SGX可以为<strong>用户级程序提供保护</strong>。那么Intel SGX到底是通过什么机制来保护用户程序数据的机密性与完整性的呢？我们如何利用Intel SGX技术来编写安全应用呢？ 问题很多，慢慢记录…!</p>
+<h1 id="参考文献"><a href="#参考文献" class="headerlink" title="参考文献"></a>参考文献</h1><p>[1] Intel Corporation. “Intel 64 and IA-32 Architectures Software Developer’s Manual Volume 3.”<br>[2] Kristoffer Severinsen. “Secure Programming with Intel SGX and Novel Applications.”<br>[3] WhatIs.com. <a href="https://whatis.techtarget.com/definition/trusted-platform-module-TPM" target="_blank" rel="noopener">https://whatis.techtarget.com/definition/trusted-platform-module-TPM</a></p>
+<h1 id="附录"><a href="#附录" class="headerlink" title="附录"></a>附录</h1><h2 id="软件认证（Software-Attestation）"><a href="#软件认证（Software-Attestation）" class="headerlink" title="软件认证（Software Attestation）"></a>软件认证（Software Attestation）</h2><p>在软件运行之前，由可信硬件对其进行测度（measure），然后由硬件模块使用其保存的私钥对软件测度（Measurement）进行签名来创建一个证明签名（attestation signature）。证明签名只能由防篡改硬件来创建，在检测阶段使用同样的方式对软件进行测度，然后将这个内容与使用公钥解出来的签名进行对比，如果不一致则证明软件被篡改了。这一部分不了解的话，可以去学习一下RSA非对称密钥的知识。</p>
+<h2 id="TPM-Trusted-Platform-Module"><a href="#TPM-Trusted-Platform-Module" class="headerlink" title="TPM(Trusted Platform Module)"></a>TPM(Trusted Platform Module)</h2><p>可信平台模块（TPM）<sup>[1]</sup>是终端设备上的专用芯片，用于存储特定于主机系统的RSA加密密钥以进行硬件层的辅助认证。每个TPM芯片都包含一个称为“认可密钥（EK）”的RSA密钥对。密钥对保持在芯片内部，无法通过软件访问。</p>
+<p>存储根密钥（The Storage Root Key）会在管理员获得系统拥有权时，根据EK和所有者指定的密码生成。TPM希望在引导过程的每个阶段都能report下一个阶段软件的hash值，从而能对启动过程的每个软件都进行测度。理想很丰满，但现实中不同供应商（vendors）提供的计算机可能运行不同的OS内核、驱动以及固件，那么不同的软件模块就没有TPM预期的度量源。当然TPM还可以用来对数据进行加密/解密操作，因为它使用的密钥绝不会被盗取。</p>
+<p>Intel 的可信执行环境TXT（Trusted Execution Environment）是集成在CPU中一些硬件功能，是Intel SGX的前身。英特尔®可信执行技术是对英特尔®处理器和芯片组的一组硬件扩展, 用于增强具有安全功能的数字办公平台 (如测量的启动和受保护的执行)。英特尔可信执行技术提供了基于硬件的机制, 有助于防止基于软件的攻击, 并保护在客户端 PC 上存储或创建的数据的保密性和完整性。依赖于TPM，Intel TXT可以允许运行在系统上的软件为其他软件创建一个可度量的加载环境，从而实现前面所述的安全启动过程。</p>
+<h2 id="ARM-TrustZone"><a href="#ARM-TrustZone" class="headerlink" title="ARM TrustZone"></a>ARM TrustZone</h2><p>相对Intel 的 TXT，ARM的TrustZone由ARM处理器架构下的一些硬件组成。它可以将系统资源划分为两个部分：一部分提供给Rich OS使用（正常世界也称为非安全世界，保留现在操作系统的富足功能），另一部分提供给TEE OS使用（安全世界，减少OS的代码量，同时存储例如指纹、密码等需要保护的数据），并且从硬件上实现正常世界不能随意访问安全世界的内存等资源。由TrustZone提供的TEE典型应用有：可信启动、认证、支付信息保护、加密以及移动设备管理。</p>
 
     </div>
 
@@ -289,18 +303,25 @@
     
 
       <footer class="post-footer">
+          <div class="post-tags">
+              <a href="/tags/%E7%A1%AC%E4%BB%B6%E8%BE%85%E5%8A%A9%E5%AE%89%E5%85%A8/" rel="tag"># 硬件辅助安全</a>
+              <a href="/tags/TrustZone/" rel="tag"># TrustZone</a>
+          </div>
 
         
 
           <div class="post-nav">
             <div class="post-nav-next post-nav-item">
+                <a href="/2019/11/03/SeedLab/" rel="next" title="SeedProject:网络安全实验——拒绝纸上谈兵">
+                  <i class="fa fa-chevron-left"></i> SeedProject:网络安全实验——拒绝纸上谈兵
+                </a>
             </div>
 
             <span class="post-nav-divider"></span>
 
             <div class="post-nav-prev post-nav-item">
-                <a href="/2019/11/02/MIT6.828/" rel="prev" title="MIT6.828-神级OS课程-要是早遇到，我还会是这种 five 系列">
-                  MIT6.828-神级OS课程-要是早遇到，我还会是这种 five 系列 <i class="fa fa-chevron-right"></i>
+                <a href="/2019/11/13/TrustZone%E5%88%9D%E6%8E%A2%EF%BC%9A%E6%A0%91%E8%8E%93%E6%B4%BE3%E8%BF%90%E8%A1%8COP-TEE/" rel="prev" title="TrustZone初探：树莓派3B上运行OP-TEE">
+                  TrustZone初探：树莓派3B上运行OP-TEE <i class="fa fa-chevron-right"></i>
                 </a>
             </div>
           </div>
@@ -340,7 +361,7 @@
 
       <!--noindex-->
       <div class="post-toc-wrap sidebar-panel">
-          <div class="post-toc motion-element"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#Quick-Start"><span class="nav-number">1.</span> <span class="nav-text">Quick Start</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#Create-a-new-post"><span class="nav-number">1.1.</span> <span class="nav-text">Create a new post</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#Run-server"><span class="nav-number">1.2.</span> <span class="nav-text">Run server</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#Generate-static-files"><span class="nav-number">1.3.</span> <span class="nav-text">Generate static files</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#Deploy-to-remote-sites"><span class="nav-number">1.4.</span> <span class="nav-text">Deploy to remote sites</span></a></li></ol></li></ol></div>
+          <div class="post-toc motion-element"><ol class="nav"><li class="nav-item nav-level-1"><a class="nav-link" href="#参考文献"><span class="nav-number">1.</span> <span class="nav-text">参考文献</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#附录"><span class="nav-number">2.</span> <span class="nav-text">附录</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#软件认证（Software-Attestation）"><span class="nav-number">2.1.</span> <span class="nav-text">软件认证（Software Attestation）</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#TPM-Trusted-Platform-Module"><span class="nav-number">2.2.</span> <span class="nav-text">TPM(Trusted Platform Module)</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#ARM-TrustZone"><span class="nav-number">2.3.</span> <span class="nav-text">ARM TrustZone</span></a></li></ol></li></ol></div>
       </div>
       <!--/noindex-->
 

@@ -1,0 +1,554 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
+<meta name="theme-color" content="#222">
+<meta name="generator" content="Hexo 4.0.0">
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png">
+  <link rel="mask-icon" href="/images/logo.svg" color="#222">
+
+<link rel="stylesheet" href="/css/main.css">
+
+
+<link rel="stylesheet" href="/lib/font-awesome/css/font-awesome.min.css">
+
+
+<script id="hexo-configurations">
+  var NexT = window.NexT || {};
+  var CONFIG = {
+    root: '/',
+    scheme: 'Pisces',
+    version: '7.4.2',
+    exturl: false,
+    sidebar: {"position":"right","display":"post","offset":12,"onmobile":false},
+    copycode: {"enable":false,"show_result":false,"style":null},
+    back2top: {"enable":true,"sidebar":false,"scrollpercent":true},
+    bookmark: {"enable":false,"color":"#222","save":"auto"},
+    fancybox: false,
+    mediumzoom: false,
+    lazyload: false,
+    pangu: false,
+    algolia: {
+      appID: '',
+      apiKey: '',
+      indexName: '',
+      hits: {"per_page":10},
+      labels: {"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}
+    },
+    localsearch: {"enable":true,"trigger":"auto","top_n_per_article":1,"unescape":false,"preload":false},
+    path: 'search.xml',
+    motion: {"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}},
+    translation: {
+      copy_button: 'Copy',
+      copy_success: 'Copied',
+      copy_failure: 'Copy failed'
+    },
+    sidebarPadding: 40
+  };
+</script>
+
+  <meta name="description" content="传统的内核保护使用安全工具来实现，这些安全工具与内核运行在同一个地址空间。这种方式并不安全，因为一旦攻击危及到内核，那么安全工具本身也会遭到破坏。那么为了更有效地保护内核，安全工具需要执行在隔离环境下。保证安全工具的隔离性有两种方式：1）基于 Hypervisor 方法，利用虚拟化技术为安全工具提供一个更高的特权级和隔离性；2）基于硬件方法，硬件提供隔离环境。">
+<meta name="keywords" content="TrustZone,内核保护,系统安全">
+<meta property="og:type" content="article">
+<meta property="og:title" content="基于TrustZone的实时内核保护（CCS&#39;14）">
+<meta property="og:url" content="http:&#x2F;&#x2F;120.78.209.0&#x2F;2019&#x2F;11&#x2F;23&#x2F;TZ-RPK&#x2F;index.html">
+<meta property="og:site_name" content="一丁点儿">
+<meta property="og:description" content="传统的内核保护使用安全工具来实现，这些安全工具与内核运行在同一个地址空间。这种方式并不安全，因为一旦攻击危及到内核，那么安全工具本身也会遭到破坏。那么为了更有效地保护内核，安全工具需要执行在隔离环境下。保证安全工具的隔离性有两种方式：1）基于 Hypervisor 方法，利用虚拟化技术为安全工具提供一个更高的特权级和隔离性；2）基于硬件方法，硬件提供隔离环境。">
+<meta property="og:locale" content="en">
+<meta property="og:image" content="http:&#x2F;&#x2F;120.78.209.0&#x2F;2019&#x2F;11&#x2F;23&#x2F;TZ-RPK&#x2F;20191123180527375_24945.png">
+<meta property="og:updated_time" content="2019-11-30T02:43:44.000Z">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="http:&#x2F;&#x2F;120.78.209.0&#x2F;2019&#x2F;11&#x2F;23&#x2F;TZ-RPK&#x2F;20191123180527375_24945.png">
+
+<link rel="canonical" href="http://120.78.209.0/2019/11/23/TZ-RPK/">
+
+
+<script id="page-configurations">
+  // https://hexo.io/docs/variables.html
+  CONFIG.page = {
+    sidebar: "",
+    isHome: false,
+    isPost: true,
+    isPage: false,
+    isArchive: false
+  };
+</script>
+
+  <title>基于TrustZone的实时内核保护（CCS'14） | 一丁点儿</title>
+  
+
+
+
+
+
+
+  <noscript>
+  <style>
+  .use-motion .brand,
+  .use-motion .menu-item,
+  .sidebar-inner,
+  .use-motion .post-block,
+  .use-motion .pagination,
+  .use-motion .comments,
+  .use-motion .post-header,
+  .use-motion .post-body,
+  .use-motion .collection-header { opacity: initial; }
+
+  .use-motion .site-title,
+  .use-motion .site-subtitle {
+    opacity: initial;
+    top: initial;
+  }
+
+  .use-motion .logo-line-before i { left: initial; }
+  .use-motion .logo-line-after i { right: initial; }
+  </style>
+</noscript>
+
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage">
+  <div class="container use-motion">
+    <div class="headband"></div>
+
+    <header class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-container">
+  <div class="site-meta">
+
+    <div>
+      <a href="/" class="brand" rel="start">
+        <span class="logo-line-before"><i></i></span>
+        <span class="site-title">一丁点儿</span>
+        <span class="logo-line-after"><i></i></span>
+      </a>
+    </div>
+        <p class="site-subtitle">每天进步一丁点儿！</p>
+  </div>
+
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="Toggle navigation bar">
+      <span class="toggle-line toggle-line-first"></span>
+      <span class="toggle-line toggle-line-middle"></span>
+      <span class="toggle-line toggle-line-last"></span>
+    </div>
+  </div>
+</div>
+
+
+<nav class="site-nav">
+  
+  <ul id="menu" class="menu">
+        <li class="menu-item menu-item-home">
+
+    <a href="/" rel="section"><i class="fa fa-fw fa-home"></i>Home</a>
+
+  </li>
+        <li class="menu-item menu-item-tags">
+
+    <a href="/tags/" rel="section"><i class="fa fa-fw fa-tags"></i>Tags</a>
+
+  </li>
+        <li class="menu-item menu-item-categories">
+
+    <a href="/categories/" rel="section"><i class="fa fa-fw fa-th"></i>Categories</a>
+
+  </li>
+        <li class="menu-item menu-item-archives">
+
+    <a href="/archives/" rel="section"><i class="fa fa-fw fa-archive"></i>Archives</a>
+
+  </li>
+      <li class="menu-item menu-item-search">
+        <a role="button" class="popup-trigger"><i class="fa fa-search fa-fw"></i>Search
+        </a>
+      </li>
+  </ul>
+
+</nav>
+  <div class="site-search">
+    <div class="popup search-popup">
+    <div class="search-header">
+  <span class="search-icon">
+    <i class="fa fa-search"></i>
+  </span>
+  <div class="search-input-container">
+    <input autocomplete="off" autocorrect="off" autocapitalize="none"
+           placeholder="Searching..." spellcheck="false"
+           type="text" id="search-input">
+  </div>
+  <span class="popup-btn-close">
+    <i class="fa fa-times-circle"></i>
+  </span>
+</div>
+<div id="search-result"></div>
+
+</div>
+<div class="search-pop-overlay"></div>
+
+  </div>
+</div>
+    </header>
+
+    
+  <div class="back-to-top">
+    <i class="fa fa-arrow-up"></i>
+    <span>0%</span>
+  </div>
+  <div class="reading-progress-bar"></div>
+
+
+    <main class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          
+
+          <div class="content">
+            
+
+  <div class="posts-expand">
+      
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block " lang="en">
+    <link itemprop="mainEntityOfPage" href="http://120.78.209.0/2019/11/23/TZ-RPK/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar_name.gif">
+      <meta itemprop="name" content="丁标">
+      <meta itemprop="description" content="">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="一丁点儿">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          基于TrustZone的实时内核保护（CCS'14）
+        </h1>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              <span class="post-meta-item-text">Posted on</span>
+
+              <time title="Created: 2019-11-23 21:18:39" itemprop="dateCreated datePublished" datetime="2019-11-23T21:18:39+08:00">2019-11-23</time>
+            </span>
+              <span class="post-meta-item">
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-calendar-check-o"></i>
+                </span>
+                <span class="post-meta-item-text">Edited on</span>
+                <time title="Modified: 2019-11-30 10:43:44" itemprop="dateModified" datetime="2019-11-30T10:43:44+08:00">2019-11-30</time>
+              </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              <span class="post-meta-item-text">In</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/TrustZone/" itemprop="url" rel="index">
+                    <span itemprop="name">TrustZone</span>
+                  </a>
+                </span>
+            </span>
+
+          
+            <span class="post-meta-item" title="Views" id="busuanzi_container_page_pv" style="display: none;">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-eye"></i>
+              </span>
+              <span class="post-meta-item-text">Views: </span>
+              <span id="busuanzi_value_page_pv"></span>
+            </span><br>
+            <span class="post-meta-item" title="Symbols count in article">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-file-word-o"></i>
+              </span>
+                <span class="post-meta-item-text">Symbols count in article: </span>
+              <span>3.6k</span>
+            </span>
+            <span class="post-meta-item" title="Reading time">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-clock-o"></i>
+              </span>
+                <span class="post-meta-item-text">Reading time &asymp;</span>
+              <span>3 mins.</span>
+            </span>
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+        <p>传统的内核保护使用安全工具来实现，这些安全工具与内核运行在同一个地址空间。这种方式并不安全，因为一旦攻击危及到内核，那么安全工具本身也会遭到破坏。那么为了更有效地保护内核，安全工具需要执行在隔离环境下。保证安全工具的隔离性有两种方式：1）基于 Hypervisor 方法，利用虚拟化技术为安全工具提供一个更高的特权级和隔离性；2）基于硬件方法，硬件提供隔离环境。</p><a id="more"></a>
+<p>但是对 Hypervisor 做大量系统管理和资源分发的需求，已经让 Hypervisor 变得十分复杂，它本身的安全就面临着挑战。意识到虚拟机管理程序和内核存在的安全威胁，主流硬件平台都引进了一个新的安全和隔离执行环境，在 ARM 下称为安全世界（secure world）。安全世界包含了一个更薄更安全软件层，用来提供安全服务。此外，它限制与正常世界的接口，保护内存不会被来自正常世界内核或虚拟机管理程序非法访问。</p>
+<p>运行在 TrustZone 安全世界下的安全保护工具面临着两个主要的挑战。<strong>首先，运行在正常世界的 Rich 操作系统（如 Andriod）对其拥有的资源有完全控制权</strong>，这些资源包括物理内存和内存管理单元（MMU）。从直觉来看，这种控制能力可以让那些破坏安全世界的攻击绕过常规的安全监控技术。例如，攻击者可以修改中断处理程序的地址，定位到一个劫持内核控制流的钩子（hook）。<strong>其次，安全世界无法截获发生在正常世界的关键事件，例如页错误异常和系统控制指令（system control instruction）的执行。</strong>与虚拟化扩展可以截获事件不同，隔离执行环境不能截获事件，基本上可以算是 TEE 环境普遍存在的一个问题。如果这些事件不能陷入到安全世界，那么安全监控程序就无法检查这些事件对系统安全的影响。</p>
+<p>在这里我们可能会产生一个疑问，控制指令的定义是什么？在 ARMv7-A架构下，控制指令是通过写相应的协处理器寄存器实现的，并且只能通过<code>LDC</code>和<code>MCR</code>两种指令向协处理器发送请求。这就使得我们可以很方便的监控关键事件，只需要将这两个指令替换为<code>SMC</code>指令即可，在下面会详细阐述。而 ARMv8-A 是直接通过控制指令写相应的寄存器，没有协处理器的概念了。</p>
+<p>基于 TrustZone 的实时内核保护（TZ-RKP, TrustZone-based Real-time Kernel Protection）使用一个运行在 ARM TrustZone 安全世界下的安全监控程序，提供了一个内核保护的基本架构。TZ-RKP 有以下三种特性：</p>
+<ul>
+<li><strong>隔离潜在的攻击</strong></li>
+<li><strong>安全监控程序拥有对内核内存空间的完全控制权</strong></li>
+<li>可以<strong>截获关键事件</strong>，并且在应用这些操作之前检查它们对安全性的影响</li>
+</ul>
+<p>从这些特性可以看出，TZ-RKP实现了一种事件驱动型的内核保护。同时它无需削减正常世界下操作系统的功能，解决了必须在隔离性与效益性之间做权衡的困境。</p>
+<p>分析完内核保护面临的挑战以及 TZ-RKP 实现的特性之后，我想从<strong>内存保护</strong>与<strong>控制指令仿真（事件截获，实现了事件驱动）</strong>两个方面来阐述 TZ-RKP 是如何解决其面临的挑战的。首先，内存保护解决了第一个挑战，即正常世界的操作系统对其拥有的资源有完全控制权，会使得攻击能绕过安全监控程序。内存保护在确保监控程序不可绕过上扮演了一个十分重要的角色，它确保了内核代码无法被修改，防止内核代码注入以及 return-to-user 攻击。内存保护方法还提供了一个新方法，来防止潜在的恶意用户程序直接访问内核关键数据。</p>
+<p>其次，解决安全世界无法截获正常世界关键事件的问题，由剥夺内核控制关键功能的能力开始。TZ-RKP 检查内核代码来确保将系统控制指令从内核从可执行特权级指令的内存空间[1]中移除，并用 <code>SMC</code>（Secure Monitor Call） 指令替换而陷入安全世界。安全世界再对这些正常世界下能修改系统状态的特权指令（如定义页表以及异常处理函数地址的指令）进行仿真实现（这里的仿真实现并不是虚拟机意义上的仿真，而是在安全世界调用指令去写协处理器寄存器），当然实现之前会检查该指令的结果是否会对系统产生安全威胁。[1]的实现需要对页表进行配置，所以同样需要确保页表不能被正常世界修改。TZ-RKP 修改了内核，使其对页表的更新操作必须经过安全世界实现。从以上分析我们可以体会到，<strong>内存保护与事件驱动机制两者是相辅相成的</strong>，不能完全割裂出来分析。</p>
+<blockquote>
+<p><strong>[1]</strong> 划分特权级指令执行空间可以由修改页表项中的 PXN（Privileged eXecute Never）标志位来实现。PXN访问限制，可以使得特权指令（如 LDC、MCR等）只能在没有此标志位的地址空间中加载并执行。这样实现的一个很好的特性就是从根本上阻止了 return-to-user 攻击。Rich OS 的典型虚拟内存布局如图 1 所示。TZ-RKP 执行严格的内存保护策略，除了存放被验证过的内核地址范围，其他地址空间映射都设置了 PXN 标记。<br><img src="/2019/11/23/TZ-RPK/20191123180527375_24945.png" alt="图 1 正常世界 OS 虚拟内存地址空间布局"></p>
+</blockquote>
+<p>那么如何移除<code>LDC (Load to Coprocessor)</code>和<code>MCR (Move to Coprocessor from ARM Register)</code>指令呢？可以由两种方式来实现：1）对于开源的内核，可以直接在源代码级用控制流钩子（hook）替换。同时用一个寄存器来传递具体请求的功能，TZ-RKP 通过检查寄存器值来执行对应的功能。2） 对于闭源的操作系统，可以将页错误异常处理程序替换为 SMC 指令，以致于每个页错误都会陷入到安全世界（在系统初始化时，会将页表设置为只读）。TZ-RKP 首先会检查<code>DFAR</code>寄存器，其保存了导致页错误的虚拟地址。如果这个地址与被保护的页表相匹配，TZ-RKP 会先检查这个值是否合法，之后再修改相应的页表项，最后返回正常世界。但是第二种方式存在着两个问题：1）处理过程有一个额外的模式切换（ARMv7 处理页错误的 abort mode ）；2）不修改内核代码，性能问题很难改善。</p>
+<p>总结一下，为了能做到以上对指令进行替换过程，保证其安全性，需要基于以下三个特有的硬件特性：</p>
+<ul>
+<li>改变系统状态的指令都是特权指令，其只能在特权模式下才能执行；</li>
+<li>ARM 虚拟内存系统可以限制特权指令的执行区域，使用我们上面提到的 PXN 标志；</li>
+<li>ARM的指令集要求指令（操作码+操作数）要么为 THUMB 模式下的 16 位，要么为 ARM 模式下的 32 位形式。这些“模板”式的指令，可以很方便去进行匹配，然后对其进行替换。</li>
+</ul>
+<p><strong>最后记录一下常见的攻击方式以及 TZ-RKP 的应对方式</strong></p>
+<ol>
+<li><p>Kernel Attack Surface<br>内核面临的第一个威胁就是加载了被修改的内核代码，这可以有可信安全启动解决。在加载内核代码时，对其进行验证。在内核代码加载完成后，内存保护机制可以使得内核代码不可修改。由控制指令仿真和内存保护机制提供的安全保证是不可绕过的，因为在正常世界中没有地方可以再执行被仿真的指令或是修改页表。</p>
+</li>
+<li><p>Return-To-User 攻击<br>R2U攻击可以利用内核漏洞在保留特权级模式时返回用户空间内存。然后用户空间的代码就可以执行特权级指令并且访问特权级数据。这种攻击能给系统带来特别大的破坏。对于这种攻击，我们之间也提到了，使用PXN限制用户空间执行特权代码可以阻止这种攻击。</p>
+</li>
+<li><p>内核数据二次映射<br>物理页的两次映射，即将存有内核数据的物理页同时映射到用户空间，用户程序即可访问内核数据。</p>
+</li>
+<li><p>DMA  攻击<br>有时为了数据传输有效性，可以允许硬件外设绕过 MMU 直接访问内存（DMA）。攻击者可以这个入侵点，欺骗内核允许其直接访问物理内存。但对 TZ-RKP 来说，DMA 攻击并不是威胁。DMA 攻击的目的不过于修改内核二进制代码或修改页表，这些攻击都会被安全世界阻止。当然也可以进一步检查内核代码，不让正常世界管理 DMA 控制器。</p>
+</li>
+<li><p>对 TrustZone 的攻击<br>TZ 本身也是可以被攻击的。其实TZ就像我们家里的保险箱一样，大门被攻破了，还有保险箱能保护我们的关键数据（钱！密码等~）。但是保险箱也不安全嘛，也能被撬开，不过相对大门来说更加难（对应计算机术语，攻击面小）。2014 年即有一例对 TrustZone 的攻击<a href="https://www.blackhat.com/docs/us-14/materials/us-14-Rosenberg-Reflections-On-Trusting-TrustZone-WP.pdf" target="_blank" rel="noopener">QSEE TrustZone Kernel Integer Overflow Vulnerability_ Black Hat</a>。安全没有一劳永逸的方式，只要安全实现的方法需要攻击者花费大量的时间和金钱来攻击，直至超过了其能忍受的程度，那么这个安全防护就是成功的。</p>
+</li>
+</ol>
+<p><strong>参考文献</strong></p>
+<ol>
+<li>Azab A M, Ning P, Shah J, et al. Hypervision across worlds: Real-time kernel protection from the arm trustzone secure world[C]//Proceedings of the 2014 ACM SIGSAC Conference on Computer and Communications Security. ACM, 2014: 90-102.</li>
+</ol>
+
+    </div>
+
+    
+    
+    
+
+      <footer class="post-footer">
+          <div class="post-tags">
+              <a href="/tags/TrustZone/" rel="tag"># TrustZone</a>
+              <a href="/tags/%E5%86%85%E6%A0%B8%E4%BF%9D%E6%8A%A4/" rel="tag"># 内核保护</a>
+              <a href="/tags/%E7%B3%BB%E7%BB%9F%E5%AE%89%E5%85%A8/" rel="tag"># 系统安全</a>
+          </div>
+
+        
+
+          <div class="post-nav">
+            <div class="post-nav-next post-nav-item">
+                <a href="/2019/11/13/TrustZone%E5%88%9D%E6%8E%A2%EF%BC%9A%E6%A0%91%E8%8E%93%E6%B4%BE3%E8%BF%90%E8%A1%8COP-TEE/" rel="next" title="TrustZone初探：树莓派3B上运行OP-TEE">
+                  <i class="fa fa-chevron-left"></i> TrustZone初探：树莓派3B上运行OP-TEE
+                </a>
+            </div>
+
+            <span class="post-nav-divider"></span>
+
+            <div class="post-nav-prev post-nav-item">
+                <a href="/2019/11/25/%E4%BA%91%E6%9C%8D%E5%8A%A1%E5%99%A8Git%E9%85%8D%E7%BD%AE/" rel="prev" title="云服务器上搭建私有 Git 仓库">
+                  云服务器上搭建私有 Git 仓库 <i class="fa fa-chevron-right"></i>
+                </a>
+            </div>
+          </div>
+      </footer>
+    
+  </article>
+  
+  
+  
+
+  </div>
+
+
+          </div>
+          
+
+        </div>
+          
+  
+  <div class="toggle sidebar-toggle">
+    <span class="toggle-line toggle-line-first"></span>
+    <span class="toggle-line toggle-line-middle"></span>
+    <span class="toggle-line toggle-line-last"></span>
+  </div>
+
+  <aside class="sidebar">
+    <div class="sidebar-inner">
+
+      <ul class="sidebar-nav motion-element">
+        <li class="sidebar-nav-toc">
+          Table of Contents
+        </li>
+        <li class="sidebar-nav-overview">
+          Overview
+        </li>
+      </ul>
+
+      <!--noindex-->
+      <div class="post-toc-wrap sidebar-panel">
+      </div>
+      <!--/noindex-->
+
+      <div class="site-overview-wrap sidebar-panel">
+        <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+  <img class="site-author-image" itemprop="image" alt="丁标"
+    src="/images/avatar_name.gif">
+  <p class="site-author-name" itemprop="name">丁标</p>
+  <div class="site-description" itemprop="description"></div>
+</div>
+<div class="site-state-wrap motion-element">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+          <a href="/archives/">
+        
+          <span class="site-state-item-count">7</span>
+          <span class="site-state-item-name">posts</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-categories">
+            <a href="/categories/">
+          
+        <span class="site-state-item-count">4</span>
+        <span class="site-state-item-name">categories</span></a>
+      </div>
+      <div class="site-state-item site-state-tags">
+            <a href="/tags/">
+          
+        <span class="site-state-item-count">10</span>
+        <span class="site-state-item-name">tags</span></a>
+      </div>
+  </nav>
+</div>
+  <div class="links-of-author motion-element">
+      <span class="links-of-author-item">
+        <a href="https://www.zhihu.com/people/dee-201/activities" title="知乎 &amp;rarr; https:&#x2F;&#x2F;www.zhihu.com&#x2F;people&#x2F;dee-201&#x2F;activities" rel="noopener" target="_blank"><i class="fa fa-fw fa-zhihu"></i>知乎</a>
+      </span>
+      <span class="links-of-author-item">
+        <a href="https://github.com/SmallPond" title="GitHub &amp;rarr; https:&#x2F;&#x2F;github.com&#x2F;SmallPond" rel="noopener" target="_blank"><i class="fa fa-fw fa-github"></i>GitHub</a>
+      </span>
+  </div>
+
+
+
+      </div>
+
+    </div>
+  </aside>
+  <div id="sidebar-dimmer"></div>
+
+
+      </div>
+    </main>
+
+    <footer class="footer">
+      <div class="footer-inner">
+        
+
+<div class="copyright">
+  
+  &copy; 
+  <span itemprop="copyrightYear">2019</span>
+  <span class="with-love">
+    <i class="fa fa-user"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">丁标</span>
+    <span class="post-meta-divider">|</span>
+    <span class="post-meta-item-icon">
+      <i class="fa fa-area-chart"></i>
+    </span>
+    <span title="Symbols count total">17k</span>
+    <span class="post-meta-divider">|</span>
+    <span class="post-meta-item-icon">
+      <i class="fa fa-coffee"></i>
+    </span>
+    <span title="Reading time total">15 mins.</span>
+</div>
+  <div class="powered-by">Powered by <a href="https://hexo.io/" class="theme-link" rel="noopener" target="_blank">Hexo</a> v4.0.0
+  </div>
+  <span class="post-meta-divider">|</span>
+  <div class="theme-info">Theme – <a href="https://pisces.theme-next.org/" class="theme-link" rel="noopener" target="_blank">NexT.Pisces</a> v7.4.2
+  </div>
+
+        
+<div class="busuanzi-count">
+  <script async src="https://busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script>
+    <span class="post-meta-item" id="busuanzi_container_site_uv" style="display: none;">
+      <span class="post-meta-item-icon">
+        <i class="fa fa-user"></i>
+      </span>
+      <span class="site-uv" title="Total Visitors">
+        <span id="busuanzi_value_site_uv"></span>
+      </span>
+    </span>
+    <span class="post-meta-divider">|</span>
+    <span class="post-meta-item" id="busuanzi_container_site_pv" style="display: none;">
+      <span class="post-meta-item-icon">
+        <i class="fa fa-eye"></i>
+      </span>
+      <span class="site-pv" title="Total Views">
+        <span id="busuanzi_value_site_pv"></span>
+      </span>
+    </span>
+</div>
+
+
+
+
+
+
+
+
+
+
+
+
+        
+      </div>
+    </footer>
+  </div>
+
+  
+  <script src="/lib/anime.min.js"></script>
+  <script src="/lib/velocity/velocity.min.js"></script>
+  <script src="/lib/velocity/velocity.ui.min.js"></script>
+<script src="/js/utils.js"></script><script src="/js/motion.js"></script>
+<script src="/js/schemes/pisces.js"></script>
+<script src="/js/next-boot.js"></script>
+
+
+
+  
+
+
+
+
+  <script src="/js/local-search.js"></script>
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+  
+
+</body>
+</html>

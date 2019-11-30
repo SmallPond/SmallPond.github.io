@@ -50,17 +50,18 @@
   };
 </script>
 
-  <meta name="description" content="Welcome to Hexo! This is your very first post. Check documentation for more info. If you get any problems when using Hexo, you can find the answer in troubleshooting or you can ask me on GitHub.">
+  <meta name="description" content="服务器端配置环境：ubuntu16.04 +  阿里云服务器。注意：以下命令大部分需要用root权限执行。1. 添加用户在 Ubuntu 上添加一个 Git 用户，名字任意，并不要求以 git 开头。123adduser git_xxxcd &#x2F;home&#x2F;git_xxxmkdir .ssh2. 创建公钥文件创建一个认证公钥文件，来保存 git 客户端公钥信息，以授权其访问权限。">
+<meta name="keywords" content="git 私有仓库">
 <meta property="og:type" content="article">
-<meta property="og:title" content="Hello World">
-<meta property="og:url" content="http:&#x2F;&#x2F;120.78.209.0&#x2F;2019&#x2F;10&#x2F;24&#x2F;hello-world&#x2F;index.html">
+<meta property="og:title" content="云服务器上搭建私有 Git 仓库">
+<meta property="og:url" content="http:&#x2F;&#x2F;120.78.209.0&#x2F;2019&#x2F;11&#x2F;25&#x2F;%E4%BA%91%E6%9C%8D%E5%8A%A1%E5%99%A8Git%E9%85%8D%E7%BD%AE&#x2F;index.html">
 <meta property="og:site_name" content="一丁点儿">
-<meta property="og:description" content="Welcome to Hexo! This is your very first post. Check documentation for more info. If you get any problems when using Hexo, you can find the answer in troubleshooting or you can ask me on GitHub.">
+<meta property="og:description" content="服务器端配置环境：ubuntu16.04 +  阿里云服务器。注意：以下命令大部分需要用root权限执行。1. 添加用户在 Ubuntu 上添加一个 Git 用户，名字任意，并不要求以 git 开头。123adduser git_xxxcd &#x2F;home&#x2F;git_xxxmkdir .ssh2. 创建公钥文件创建一个认证公钥文件，来保存 git 客户端公钥信息，以授权其访问权限。">
 <meta property="og:locale" content="en">
-<meta property="og:updated_time" content="2019-10-24T12:43:30.319Z">
+<meta property="og:updated_time" content="2019-11-25T07:34:03.000Z">
 <meta name="twitter:card" content="summary">
 
-<link rel="canonical" href="http://120.78.209.0/2019/10/24/hello-world/">
+<link rel="canonical" href="http://120.78.209.0/2019/11/25/%E4%BA%91%E6%9C%8D%E5%8A%A1%E5%99%A8Git%E9%85%8D%E7%BD%AE/">
 
 
 <script id="page-configurations">
@@ -74,7 +75,7 @@
   };
 </script>
 
-  <title>Hello World | 一丁点儿</title>
+  <title>云服务器上搭建私有 Git 仓库 | 一丁点儿</title>
   
 
 
@@ -210,7 +211,7 @@
   
   
   <article itemscope itemtype="http://schema.org/Article" class="post-block " lang="en">
-    <link itemprop="mainEntityOfPage" href="http://120.78.209.0/2019/10/24/hello-world/">
+    <link itemprop="mainEntityOfPage" href="http://120.78.209.0/2019/11/25/%E4%BA%91%E6%9C%8D%E5%8A%A1%E5%99%A8Git%E9%85%8D%E7%BD%AE/">
 
     <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
       <meta itemprop="image" content="/images/avatar_name.gif">
@@ -223,7 +224,7 @@
     </span>
       <header class="post-header">
         <h1 class="post-title" itemprop="name headline">
-          Hello World
+          云服务器上搭建私有 Git 仓库
         </h1>
 
         <div class="post-meta">
@@ -232,8 +233,20 @@
                 <i class="fa fa-calendar-o"></i>
               </span>
               <span class="post-meta-item-text">Posted on</span>
+              
 
-              <time title="Created: 2019-10-24 20:43:30" itemprop="dateCreated datePublished" datetime="2019-10-24T20:43:30+08:00">2019-10-24</time>
+              <time title="Created: 2019-11-25 15:29:12 / Modified: 15:34:03" itemprop="dateCreated datePublished" datetime="2019-11-25T15:29:12+08:00">2019-11-25</time>
+            </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              <span class="post-meta-item-text">In</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/%E7%8E%AF%E5%A2%83%E6%90%AD%E5%BB%BANotes/" itemprop="url" rel="index">
+                    <span itemprop="name">环境搭建Notes</span>
+                  </a>
+                </span>
             </span>
 
           
@@ -249,7 +262,7 @@
                 <i class="fa fa-file-word-o"></i>
               </span>
                 <span class="post-meta-item-text">Symbols count in article: </span>
-              <span>357</span>
+              <span>1.2k</span>
             </span>
             <span class="post-meta-item" title="Reading time">
               <span class="post-meta-item-icon">
@@ -268,19 +281,25 @@
     <div class="post-body" itemprop="articleBody">
 
       
-        <p>Welcome to <a href="https://hexo.io/" target="_blank" rel="noopener">Hexo</a>! This is your very first post. Check <a href="https://hexo.io/docs/" target="_blank" rel="noopener">documentation</a> for more info. If you get any problems when using Hexo, you can find the answer in <a href="https://hexo.io/docs/troubleshooting.html" target="_blank" rel="noopener">troubleshooting</a> or you can ask me on <a href="https://github.com/hexojs/hexo/issues" target="_blank" rel="noopener">GitHub</a>.</p><a id="more"></a>
-<h2 id="Quick-Start"><a href="#Quick-Start" class="headerlink" title="Quick Start"></a>Quick Start</h2><h3 id="Create-a-new-post"><a href="#Create-a-new-post" class="headerlink" title="Create a new post"></a>Create a new post</h3><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">$ hexo new <span class="string">"My New Post"</span></span><br></pre></td></tr></table></figure>
+        <h1 id="服务器端配置"><a href="#服务器端配置" class="headerlink" title="服务器端配置"></a>服务器端配置</h1><p>环境：ubuntu16.04 +  阿里云服务器。注意：以下命令大部分需要用root权限执行。<br><strong>1. 添加用户</strong><br>在 Ubuntu 上添加一个 Git 用户，名字任意，并不要求以 git 开头。</p><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">adduser git_xxx</span><br><span class="line">cd /home/git_xxx</span><br><span class="line">mkdir .ssh</span><br></pre></td></tr></table></figure><p><strong>2. 创建公钥文件</strong><br>创建一个认证公钥文件，来保存 git 客户端公钥信息，以授权其访问权限。</p><a id="more"></a>
 
-<p>More info: <a href="https://hexo.io/docs/writing.html" target="_blank" rel="noopener">Writing</a></p>
-<h3 id="Run-server"><a href="#Run-server" class="headerlink" title="Run server"></a>Run server</h3><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">$ hexo server</span><br></pre></td></tr></table></figure>
 
-<p>More info: <a href="https://hexo.io/docs/server.html" target="_blank" rel="noopener">Server</a></p>
-<h3 id="Generate-static-files"><a href="#Generate-static-files" class="headerlink" title="Generate static files"></a>Generate static files</h3><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">$ hexo generate</span><br></pre></td></tr></table></figure>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">touch ./.ssh/authorized_keys</span><br></pre></td></tr></table></figure>
+<p><strong>3. 添加用户公钥</strong><br>在客户端上，配置自己的 git 信息，然后生成公钥私钥对。如果已经进行了 git 初始化，可以跳过此部分，直接将公钥文件添加到我们上面创建的文件中即可。</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">git config --global user.name &quot;yourname&quot;</span><br><span class="line">git config --global user.email &quot;email@example.com&quot;</span><br><span class="line"># 你的邮箱</span><br><span class="line">ssh-keygen -t rsa -C &lt;your_email@example.com&gt;   </span><br><span class="line">cat ~/.ssh/id_rsa.pub</span><br></pre></td></tr></table></figure>
+<p>将 <code>cat</code>命令得到的字符串全复制到 Ubuntu<code>./.ssh/authorized_keys</code>文件中。</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">vim ./.ssh/authorized_keys</span><br><span class="line"># 也可以使用以下命令直接将公钥写入到服务器文件</span><br><span class="line">ssh-copy-id -i ~/.ssh/id_rsa.pub &apos;git_xxx@your-server-ip&apos;</span><br></pre></td></tr></table></figure>
+<p><strong>4. 初始空的远程仓库</strong><br>在用户目录下初始化一个空远程仓库。</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">cd /home/git_xxx/</span><br><span class="line">git init --bare hexo.git</span><br></pre></td></tr></table></figure>
+<p><strong>5. 修改文件拥有者</strong><br>在这里一定要确保文件所有者是<code>git_xxx</code>而不是<code>root</code>， 不然在上传文件是会出现权限拒绝问题。</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">chown -R git_xxx:git_xxx hexo.git</span><br></pre></td></tr></table></figure>
+<p><strong>6. 禁止 Git 用户 shell 登录</strong><br>考虑到服务器的安全性，禁止远程使用 GIT 用户进行登录。</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">vim /etc/passwd</span><br><span class="line">//修改</span><br><span class="line">git_xxx:x:1003:1003:,,,:/home/git_xxx:/bin/bash</span><br><span class="line">//为</span><br><span class="line">git_xxx:x:1003:1003:,,,:/home/git_xxx:/usr/bin/git-shell</span><br></pre></td></tr></table></figure>
 
-<p>More info: <a href="https://hexo.io/docs/generating.html" target="_blank" rel="noopener">Generating</a></p>
-<h3 id="Deploy-to-remote-sites"><a href="#Deploy-to-remote-sites" class="headerlink" title="Deploy to remote sites"></a>Deploy to remote sites</h3><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">$ hexo deploy</span><br></pre></td></tr></table></figure>
+<h1 id="客户端远程仓库的使用方法"><a href="#客户端远程仓库的使用方法" class="headerlink" title="客户端远程仓库的使用方法"></a>客户端远程仓库的使用方法</h1><p>Windows 下在自己想要保存的文件夹下启动 <code>git bash</code>输入命令<code>git clone git_xxx@your-server-ip:/home/git_xxx/hexo.git</code>。如果显示以下信息则表示成功，然后就可以愉快地提交代码了。</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">warning: You appear to have cloned an empty repository.</span><br><span class="line">Checking connectivity... done.</span><br></pre></td></tr></table></figure>
 
-<p>More info: <a href="https://hexo.io/docs/deployment.html" target="_blank" rel="noopener">Deployment</a></p>
+
 
     </div>
 
@@ -289,19 +308,22 @@
     
 
       <footer class="post-footer">
+          <div class="post-tags">
+              <a href="/tags/git-%E7%A7%81%E6%9C%89%E4%BB%93%E5%BA%93/" rel="tag"># git 私有仓库</a>
+          </div>
 
         
 
           <div class="post-nav">
             <div class="post-nav-next post-nav-item">
+                <a href="/2019/11/23/TZ-RPK/" rel="next" title="基于TrustZone的实时内核保护（CCS'14）">
+                  <i class="fa fa-chevron-left"></i> 基于TrustZone的实时内核保护（CCS'14）
+                </a>
             </div>
 
             <span class="post-nav-divider"></span>
 
             <div class="post-nav-prev post-nav-item">
-                <a href="/2019/11/02/MIT6.828/" rel="prev" title="MIT6.828-神级OS课程-要是早遇到，我还会是这种 five 系列">
-                  MIT6.828-神级OS课程-要是早遇到，我还会是这种 five 系列 <i class="fa fa-chevron-right"></i>
-                </a>
             </div>
           </div>
       </footer>
@@ -340,7 +362,7 @@
 
       <!--noindex-->
       <div class="post-toc-wrap sidebar-panel">
-          <div class="post-toc motion-element"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#Quick-Start"><span class="nav-number">1.</span> <span class="nav-text">Quick Start</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#Create-a-new-post"><span class="nav-number">1.1.</span> <span class="nav-text">Create a new post</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#Run-server"><span class="nav-number">1.2.</span> <span class="nav-text">Run server</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#Generate-static-files"><span class="nav-number">1.3.</span> <span class="nav-text">Generate static files</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#Deploy-to-remote-sites"><span class="nav-number">1.4.</span> <span class="nav-text">Deploy to remote sites</span></a></li></ol></li></ol></div>
+          <div class="post-toc motion-element"><ol class="nav"><li class="nav-item nav-level-1"><a class="nav-link" href="#服务器端配置"><span class="nav-number">1.</span> <span class="nav-text">服务器端配置</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#客户端远程仓库的使用方法"><span class="nav-number">2.</span> <span class="nav-text">客户端远程仓库的使用方法</span></a></li></ol></div>
       </div>
       <!--/noindex-->
 

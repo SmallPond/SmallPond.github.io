@@ -1,0 +1,339 @@
+<?xml version="1.0" encoding="utf-8"?>
+<search>
+  <entry>
+    <title>云服务器上搭建私有 Git 仓库</title>
+    <url>/2019/11/25/%E4%BA%91%E6%9C%8D%E5%8A%A1%E5%99%A8Git%E9%85%8D%E7%BD%AE/</url>
+    <content><![CDATA[<h1 id="服务器端配置"><a href="#服务器端配置" class="headerlink" title="服务器端配置"></a>服务器端配置</h1><p>环境：ubuntu16.04 +  阿里云服务器。注意：以下命令大部分需要用root权限执行。<br><strong>1. 添加用户</strong><br>在 Ubuntu 上添加一个 Git 用户，名字任意，并不要求以 git 开头。</p><figure class="highlight plain"><table><tr><td class="code"><pre><span class="line">adduser git_xxx</span><br><span class="line">cd /home/git_xxx</span><br><span class="line">mkdir .ssh</span><br></pre></td></tr></table></figure><p><strong>2. 创建公钥文件</strong><br>创建一个认证公钥文件，来保存 git 客户端公钥信息，以授权其访问权限。</p><a id="more"></a>
+
+
+<figure class="highlight plain"><table><tr><td class="code"><pre><span class="line">touch ./.ssh/authorized_keys</span><br></pre></td></tr></table></figure>
+<p><strong>3. 添加用户公钥</strong><br>在客户端上，配置自己的 git 信息，然后生成公钥私钥对。如果已经进行了 git 初始化，可以跳过此部分，直接将公钥文件添加到我们上面创建的文件中即可。</p>
+<figure class="highlight plain"><table><tr><td class="code"><pre><span class="line">git config --global user.name &quot;yourname&quot;</span><br><span class="line">git config --global user.email &quot;email@example.com&quot;</span><br><span class="line"># 你的邮箱</span><br><span class="line">ssh-keygen -t rsa -C &lt;your_email@example.com&gt;   </span><br><span class="line">cat ~/.ssh/id_rsa.pub</span><br></pre></td></tr></table></figure>
+<p>将 <code>cat</code>命令得到的字符串全复制到 Ubuntu<code>./.ssh/authorized_keys</code>文件中。</p>
+<figure class="highlight plain"><table><tr><td class="code"><pre><span class="line">vim ./.ssh/authorized_keys</span><br><span class="line"># 也可以使用以下命令直接将公钥写入到服务器文件</span><br><span class="line">ssh-copy-id -i ~/.ssh/id_rsa.pub &apos;git_xxx@your-server-ip&apos;</span><br></pre></td></tr></table></figure>
+<p><strong>4. 初始空的远程仓库</strong><br>在用户目录下初始化一个空远程仓库。</p>
+<figure class="highlight plain"><table><tr><td class="code"><pre><span class="line">cd /home/git_xxx/</span><br><span class="line">git init --bare hexo.git</span><br></pre></td></tr></table></figure>
+<p><strong>5. 修改文件拥有者</strong><br>在这里一定要确保文件所有者是<code>git_xxx</code>而不是<code>root</code>， 不然在上传文件是会出现权限拒绝问题。</p>
+<figure class="highlight plain"><table><tr><td class="code"><pre><span class="line">chown -R git_xxx:git_xxx hexo.git</span><br></pre></td></tr></table></figure>
+<p><strong>6. 禁止 Git 用户 shell 登录</strong><br>考虑到服务器的安全性，禁止远程使用 GIT 用户进行登录。</p>
+<figure class="highlight plain"><table><tr><td class="code"><pre><span class="line">vim /etc/passwd</span><br><span class="line">//修改</span><br><span class="line">git_xxx:x:1003:1003:,,,:/home/git_xxx:/bin/bash</span><br><span class="line">//为</span><br><span class="line">git_xxx:x:1003:1003:,,,:/home/git_xxx:/usr/bin/git-shell</span><br></pre></td></tr></table></figure>
+
+<h1 id="客户端远程仓库的使用方法"><a href="#客户端远程仓库的使用方法" class="headerlink" title="客户端远程仓库的使用方法"></a>客户端远程仓库的使用方法</h1><p>Windows 下在自己想要保存的文件夹下启动 <code>git bash</code>输入命令<code>git clone git_xxx@your-server-ip:/home/git_xxx/hexo.git</code>。如果显示以下信息则表示成功，然后就可以愉快地提交代码了。</p>
+<figure class="highlight plain"><table><tr><td class="code"><pre><span class="line">warning: You appear to have cloned an empty repository.</span><br><span class="line">Checking connectivity... done.</span><br></pre></td></tr></table></figure>
+
+
+]]></content>
+      <categories>
+        <category>环境搭建Notes</category>
+      </categories>
+      <tags>
+        <tag>git 私有仓库</tag>
+      </tags>
+  </entry>
+  <entry>
+    <title>基于TrustZone的实时内核保护（CCS'14）</title>
+    <url>/2019/11/23/TZ-RPK/</url>
+    <content><![CDATA[<p>传统的内核保护使用安全工具来实现，这些安全工具与内核运行在同一个地址空间。这种方式并不安全，因为一旦攻击危及到内核，那么安全工具本身也会遭到破坏。那么为了更有效地保护内核，安全工具需要执行在隔离环境下。保证安全工具的隔离性有两种方式：1）基于 Hypervisor 方法，利用虚拟化技术为安全工具提供一个更高的特权级和隔离性；2）基于硬件方法，硬件提供隔离环境。</p><a id="more"></a>
+<p>但是对 Hypervisor 做大量系统管理和资源分发的需求，已经让 Hypervisor 变得十分复杂，它本身的安全就面临着挑战。意识到虚拟机管理程序和内核存在的安全威胁，主流硬件平台都引进了一个新的安全和隔离执行环境，在 ARM 下称为安全世界（secure world）。安全世界包含了一个更薄更安全软件层，用来提供安全服务。此外，它限制与正常世界的接口，保护内存不会被来自正常世界内核或虚拟机管理程序非法访问。</p>
+<p>运行在 TrustZone 安全世界下的安全保护工具面临着两个主要的挑战。<strong>首先，运行在正常世界的 Rich 操作系统（如 Andriod）对其拥有的资源有完全控制权</strong>，这些资源包括物理内存和内存管理单元（MMU）。从直觉来看，这种控制能力可以让那些破坏安全世界的攻击绕过常规的安全监控技术。例如，攻击者可以修改中断处理程序的地址，定位到一个劫持内核控制流的钩子（hook）。<strong>其次，安全世界无法截获发生在正常世界的关键事件，例如页错误异常和系统控制指令（system control instruction）的执行。</strong>与虚拟化扩展可以截获事件不同，隔离执行环境不能截获事件，基本上可以算是 TEE 环境普遍存在的一个问题。如果这些事件不能陷入到安全世界，那么安全监控程序就无法检查这些事件对系统安全的影响。</p>
+<p>在这里我们可能会产生一个疑问，控制指令的定义是什么？在 ARMv7-A架构下，控制指令是通过写相应的协处理器寄存器实现的，并且只能通过<code>LDC</code>和<code>MCR</code>两种指令向协处理器发送请求。这就使得我们可以很方便的监控关键事件，只需要将这两个指令替换为<code>SMC</code>指令即可，在下面会详细阐述。而 ARMv8-A 是直接通过控制指令写相应的寄存器，没有协处理器的概念了。</p>
+<p>基于 TrustZone 的实时内核保护（TZ-RKP, TrustZone-based Real-time Kernel Protection）使用一个运行在 ARM TrustZone 安全世界下的安全监控程序，提供了一个内核保护的基本架构。TZ-RKP 有以下三种特性：</p>
+<ul>
+<li><strong>隔离潜在的攻击</strong></li>
+<li><strong>安全监控程序拥有对内核内存空间的完全控制权</strong></li>
+<li>可以<strong>截获关键事件</strong>，并且在应用这些操作之前检查它们对安全性的影响</li>
+</ul>
+<p>从这些特性可以看出，TZ-RKP实现了一种事件驱动型的内核保护。同时它无需削减正常世界下操作系统的功能，解决了必须在隔离性与效益性之间做权衡的困境。</p>
+<p>分析完内核保护面临的挑战以及 TZ-RKP 实现的特性之后，我想从<strong>内存保护</strong>与<strong>控制指令仿真（事件截获，实现了事件驱动）</strong>两个方面来阐述 TZ-RKP 是如何解决其面临的挑战的。首先，内存保护解决了第一个挑战，即正常世界的操作系统对其拥有的资源有完全控制权，会使得攻击能绕过安全监控程序。内存保护在确保监控程序不可绕过上扮演了一个十分重要的角色，它确保了内核代码无法被修改，防止内核代码注入以及 return-to-user 攻击。内存保护方法还提供了一个新方法，来防止潜在的恶意用户程序直接访问内核关键数据。</p>
+<p>其次，解决安全世界无法截获正常世界关键事件的问题，由剥夺内核控制关键功能的能力开始。TZ-RKP 检查内核代码来确保将系统控制指令从内核从可执行特权级指令的内存空间[1]中移除，并用 <code>SMC</code>（Secure Monitor Call） 指令替换而陷入安全世界。安全世界再对这些正常世界下能修改系统状态的特权指令（如定义页表以及异常处理函数地址的指令）进行仿真实现（这里的仿真实现并不是虚拟机意义上的仿真，而是在安全世界调用指令去写协处理器寄存器），当然实现之前会检查该指令的结果是否会对系统产生安全威胁。[1]的实现需要对页表进行配置，所以同样需要确保页表不能被正常世界修改。TZ-RKP 修改了内核，使其对页表的更新操作必须经过安全世界实现。从以上分析我们可以体会到，<strong>内存保护与事件驱动机制两者是相辅相成的</strong>，不能完全割裂出来分析。</p>
+<blockquote>
+<p><strong>[1]</strong> 划分特权级指令执行空间可以由修改页表项中的 PXN（Privileged eXecute Never）标志位来实现。PXN访问限制，可以使得特权指令（如 LDC、MCR等）只能在没有此标志位的地址空间中加载并执行。这样实现的一个很好的特性就是从根本上阻止了 return-to-user 攻击。Rich OS 的典型虚拟内存布局如图 1 所示。TZ-RKP 执行严格的内存保护策略，除了存放被验证过的内核地址范围，其他地址空间映射都设置了 PXN 标记。<br><img src="/2019/11/23/TZ-RPK/20191123180527375_24945.png" alt="图 1 正常世界 OS 虚拟内存地址空间布局"></p>
+</blockquote>
+<p>那么如何移除<code>LDC (Load to Coprocessor)</code>和<code>MCR (Move to Coprocessor from ARM Register)</code>指令呢？可以由两种方式来实现：1）对于开源的内核，可以直接在源代码级用控制流钩子（hook）替换。同时用一个寄存器来传递具体请求的功能，TZ-RKP 通过检查寄存器值来执行对应的功能。2） 对于闭源的操作系统，可以将页错误异常处理程序替换为 SMC 指令，以致于每个页错误都会陷入到安全世界（在系统初始化时，会将页表设置为只读）。TZ-RKP 首先会检查<code>DFAR</code>寄存器，其保存了导致页错误的虚拟地址。如果这个地址与被保护的页表相匹配，TZ-RKP 会先检查这个值是否合法，之后再修改相应的页表项，最后返回正常世界。但是第二种方式存在着两个问题：1）处理过程有一个额外的模式切换（ARMv7 处理页错误的 abort mode ）；2）不修改内核代码，性能问题很难改善。</p>
+<p>总结一下，为了能做到以上对指令进行替换过程，保证其安全性，需要基于以下三个特有的硬件特性：</p>
+<ul>
+<li>改变系统状态的指令都是特权指令，其只能在特权模式下才能执行；</li>
+<li>ARM 虚拟内存系统可以限制特权指令的执行区域，使用我们上面提到的 PXN 标志；</li>
+<li>ARM的指令集要求指令（操作码+操作数）要么为 THUMB 模式下的 16 位，要么为 ARM 模式下的 32 位形式。这些“模板”式的指令，可以很方便去进行匹配，然后对其进行替换。</li>
+</ul>
+<p><strong>最后记录一下常见的攻击方式以及 TZ-RKP 的应对方式</strong></p>
+<ol>
+<li><p>Kernel Attack Surface<br>内核面临的第一个威胁就是加载了被修改的内核代码，这可以有可信安全启动解决。在加载内核代码时，对其进行验证。在内核代码加载完成后，内存保护机制可以使得内核代码不可修改。由控制指令仿真和内存保护机制提供的安全保证是不可绕过的，因为在正常世界中没有地方可以再执行被仿真的指令或是修改页表。</p>
+</li>
+<li><p>Return-To-User 攻击<br>R2U攻击可以利用内核漏洞在保留特权级模式时返回用户空间内存。然后用户空间的代码就可以执行特权级指令并且访问特权级数据。这种攻击能给系统带来特别大的破坏。对于这种攻击，我们之间也提到了，使用PXN限制用户空间执行特权代码可以阻止这种攻击。</p>
+</li>
+<li><p>内核数据二次映射<br>物理页的两次映射，即将存有内核数据的物理页同时映射到用户空间，用户程序即可访问内核数据。</p>
+</li>
+<li><p>DMA  攻击<br>有时为了数据传输有效性，可以允许硬件外设绕过 MMU 直接访问内存（DMA）。攻击者可以这个入侵点，欺骗内核允许其直接访问物理内存。但对 TZ-RKP 来说，DMA 攻击并不是威胁。DMA 攻击的目的不过于修改内核二进制代码或修改页表，这些攻击都会被安全世界阻止。当然也可以进一步检查内核代码，不让正常世界管理 DMA 控制器。</p>
+</li>
+<li><p>对 TrustZone 的攻击<br>TZ 本身也是可以被攻击的。其实TZ就像我们家里的保险箱一样，大门被攻破了，还有保险箱能保护我们的关键数据（钱！密码等~）。但是保险箱也不安全嘛，也能被撬开，不过相对大门来说更加难（对应计算机术语，攻击面小）。2014 年即有一例对 TrustZone 的攻击<a href="https://www.blackhat.com/docs/us-14/materials/us-14-Rosenberg-Reflections-On-Trusting-TrustZone-WP.pdf" target="_blank" rel="noopener">QSEE TrustZone Kernel Integer Overflow Vulnerability_ Black Hat</a>。安全没有一劳永逸的方式，只要安全实现的方法需要攻击者花费大量的时间和金钱来攻击，直至超过了其能忍受的程度，那么这个安全防护就是成功的。</p>
+</li>
+</ol>
+<p><strong>参考文献</strong></p>
+<ol>
+<li>Azab A M, Ning P, Shah J, et al. Hypervision across worlds: Real-time kernel protection from the arm trustzone secure world[C]//Proceedings of the 2014 ACM SIGSAC Conference on Computer and Communications Security. ACM, 2014: 90-102.</li>
+</ol>
+]]></content>
+      <categories>
+        <category>TrustZone</category>
+      </categories>
+      <tags>
+        <tag>TrustZone</tag>
+        <tag>内核保护</tag>
+        <tag>系统安全</tag>
+      </tags>
+  </entry>
+  <entry>
+    <title>TrustZone初探：树莓派3B上运行OP-TEE</title>
+    <url>/2019/11/13/TrustZone%E5%88%9D%E6%8E%A2%EF%BC%9A%E6%A0%91%E8%8E%93%E6%B4%BE3%E8%BF%90%E8%A1%8COP-TEE/</url>
+    <content><![CDATA[<h1 id="在Ubuntu上交叉编译OP-TEE"><a href="#在Ubuntu上交叉编译OP-TEE" class="headerlink" title="在Ubuntu上交叉编译OP-TEE"></a>在Ubuntu上交叉编译OP-TEE</h1><p>一边跑代码一边学习~我的环境， 官方说最好使用Ubuntu系统：</p><ul>
+<li>Ubuntu16.04</li>
+<li>树莓派3B</li>
+</ul><h2 id="源码获取与编译"><a href="#源码获取与编译" class="headerlink" title="源码获取与编译"></a>源码获取与编译</h2><h3 id="安装依赖"><a href="#安装依赖" class="headerlink" title="安装依赖"></a>安装依赖</h3><p>参考OP-TEE<a href="https://optee.readthedocs.io/en/latest/building/prerequisites.html#prerequisites" target="_blank" rel="noopener">官方文档Prerequisites</a>，不太清楚都有什么用，装上再说。</p><figure class="highlight plain"><table><tr><td class="code"><pre><span class="line">sudo apt-get install android-tools-adb android-tools-fastboot autoconf \</span><br><span class="line">        automake bc bison build-essential ccache cscope curl device-tree-compiler \</span><br><span class="line">        expect flex ftp-upload gdisk iasl libattr1-dev libc6:i386 libcap-dev \</span><br><span class="line">        libfdt-dev libftdi-dev libglib2.0-dev libhidapi-dev libncurses5-dev \</span><br><span class="line">        libpixman-1-dev libssl-dev libstdc++6:i386 libtool libz1:i386 make \</span><br><span class="line">        mtools netcat python-crypto python3-crypto python-pyelftools \</span><br><span class="line">        python3-pyelftools python-serial python3-serial rsync unzip uuid-dev \</span><br><span class="line">        xdg-utils xterm xz-utils zlib1g-dev</span><br></pre></td></tr></table></figure><a id="more"></a>
+
+
+
+
+<h3 id="安装repo"><a href="#安装repo" class="headerlink" title="安装repo"></a>安装repo</h3><p>OP-TEE使用repo管理项目，为啥要用repo呢？文档中说：使新手可以轻松使用本文档中列出的设备开始使用OP-TEE。repo安装<a href="https://source.android.com/source/downloading.html" target="_blank" rel="noopener">参考Google的官方文档</a>。</p>
+<blockquote>
+<p>repo是Google开发的用于管理Android版本库的一个工具。repo并不是用来取代Git，而是用Python对Git进行了一定的封装，简化了对多个Git版本库的管理。对应repo管理的任何一个版本库，都需要使用Git命令进行操作。</p>
+</blockquote>
+<ol>
+<li><p>确保主目录下有一个 bin/ 目录，并且该目录包含在Path中：</p>
+<figure class="highlight plain"><table><tr><td class="code"><pre><span class="line">mkdir ~/bin</span><br><span class="line">PATH=~/bin:$PATH</span><br></pre></td></tr></table></figure>
+</li>
+<li><p>下载 Repo 工具，并确保它可执行：</p>
+<figure class="highlight plain"><table><tr><td class="code"><pre><span class="line">curl https://storage.googleapis.com/git-repo-downloads/repo &gt; ~/bin/repo</span><br><span class="line">chmod a+x ~/bin/repo</span><br></pre></td></tr></table></figure>
+<p>到这一步并没有真正安装repo，只是弄下来一个脚本。</p>
+</li>
+</ol>
+<h3 id="下载OP-TEE源代码"><a href="#下载OP-TEE源代码" class="headerlink" title="下载OP-TEE源代码"></a>下载OP-TEE源代码</h3><p>源代码获取需要一段时间，</p>
+<figure class="highlight plain"><table><tr><td class="code"><pre><span class="line">$ mkdir -p ~/op-tee</span><br><span class="line">$ cd ~/op-tee</span><br><span class="line">$ repo init -u https://github.com/OP-TEE/manifest.git -m rpi3.xml -b master</span><br><span class="line">$ repo sync -j4 --no-clone-bundle</span><br></pre></td></tr></table></figure>
+<p>执行第三步的时候可能会出现以下错误，我在虚拟机中跑的，这是被墙了。</p>
+<figure class="highlight plain"><table><tr><td class="code"><pre><span class="line">fatal: Cannot get https://gerrit.googlesource.com/git-repo/clone.bundle</span><br><span class="line">fatal: error [Errno 101] Network is unreachable</span><br></pre></td></tr></table></figure>
+<p>不能科学上网，就只能修改repo的配置了。回到我们放置repo的目录下，修改<code>REPO_URL</code>为国内软件源。</p>
+<figure class="highlight plain"><table><tr><td class="code"><pre><span class="line">vim ~/bin/repo </span><br><span class="line">REPO_UR = &quot;https://aosp.tuna.tsinghua.edu.cn/git-repo&quot;</span><br></pre></td></tr></table></figure>
+<p>然后就可以继续执行下一步了，不出意外就会开始获取源代码，时间挺长的（虚拟机性能有点差感觉，跑了半个小时以上）。站起来活动活动！读一读颈椎康复指南~</p>
+<figure class="highlight plain"><table><tr><td class="code"><pre><span class="line">Fetching project OP-TEE/optee_test.git</span><br><span class="line">Fetching project u-boot/u-boot.git</span><br><span class="line">Fetching project raspberrypi/firmware.git</span><br><span class="line">Fetching project OP-TEE/optee_client.git</span><br></pre></td></tr></table></figure>
+
+<h3 id="获取工具链"><a href="#获取工具链" class="headerlink" title="获取工具链"></a>获取工具链</h3><p>对于OP-TEE运行在不同的平台（ARM-V7 ARMV8-A 64/32bit），要使用不同的工具链。执行完之后OP-TEE源代码根目录下会多出一个toolchains目录。工具链也要下载很久，所以运行<code>make</code>时最好编辑一下<code>toolchains.mk</code>文件，将<code>curl -s</code>中<code>-s</code>选项（silent不显示下载过程）去掉，不然你会以为下载程序卡了~</p>
+<figure class="highlight plain"><table><tr><td class="code"><pre><span class="line">cd ~/op-tee/build</span><br><span class="line">make -j2 toolchains</span><br><span class="line"></span><br><span class="line">Downloading gcc-arm-8.3-2019.03-x86_64-arm-linux-gnueabihf ...</span><br><span class="line">Downloading gcc-arm-8.3-2019.03-x86_64-aarch64-linux-gnu ...</span><br></pre></td></tr></table></figure>
+<p>如果下载完第一个后被中断了(第二个下载到9%就不动了)，再执行make会没有反应。只能自己动手了。不过推荐直接在windows下用迅雷下载好（捂脸，两分钟就能解决问题。</p>
+<figure class="highlight plain"><table><tr><td class="code"><pre><span class="line">curl -L https://developer.arm.com/-/media/Files/downloads/gnu-a/8.3-2019.03/binrel/gcc-arm-8.3-2019.03-x86_64-aarch64-linux-gnu.tar.xz  -o gcc-arm-8.3-2019.03-x86_64-aarch64-linux-gnu.tar.xz</span><br><span class="line"></span><br><span class="line">mv gcc-arm-8.3-2019.03-x86_64-aarch64-linux-gnu.tar.xz ../toolchains</span><br><span class="line">cd ../toolchains/</span><br><span class="line">tar xf gcc-arm-8.3-2019.03-x86_64-aarch64-linux-gnu.tar.xz -C aarch64 --strip-components=1</span><br></pre></td></tr></table></figure>
+
+<h3 id="源码编译"><a href="#源码编译" class="headerlink" title="源码编译"></a>源码编译</h3><p>源码编译又要耗费很长的时间，文档中说可以使用<code>ccache</code>进行<strong>加速</strong>。这边配置一下。ccache是一种工具，可将构建目标文件等缓存在光盘上，并可在之后的构建中加快构建时间。 在基于Debian的系统（Ubuntu，Mint等）上，只需运行以下命令即可安装：</p>
+<figure class="highlight plain"><table><tr><td class="code"><pre><span class="line">sudo apt-get install ccache</span><br></pre></td></tr></table></figure>
+
+<p>因为在下载源码时已经配置了repo的<code>manifest</code>，因此repo会自动链接相应设备的<code>makegfile</code>文件。所以只需要重新回到<code>build</code>文件夹下执行以下命令就好了，注意 ` 不是单引号。又是一个漫长的过程~不过看着这编译过程一行行冒出来还挺有意思。</p>
+<figure class="highlight plain"><table><tr><td class="code"><pre><span class="line">cd ./build</span><br><span class="line">make -j `nproc`</span><br></pre></td></tr></table></figure>
+
+
+<h1 id="将OP-TEE部署到RaspPi"><a href="#将OP-TEE部署到RaspPi" class="headerlink" title="将OP-TEE部署到RaspPi"></a>将OP-TEE部署到RaspPi</h1><p>在<code>build</code>目录下执行<code>make img-help</code>可以查看如何将OP-TEE下载到SD卡上。</p>
+<p>以下是我的步骤。</p>
+<ol>
+<li>插入SD卡，执行<code>sudo fdisk -l</code>查看SD卡信息<code>/dev/sdb</code></li>
+</ol>
+<figure class="highlight plain"><table><tr><td class="code"><pre><span class="line">$ sudo fdisk -l</span><br><span class="line"></span><br><span class="line">Disk /dev/sdb: 7.4 GiB, 7948206080 bytes, 15523840 sectors</span><br><span class="line">Units: sectors of 1 * 512 = 512 bytes</span><br><span class="line">Sector size (logical/physical): 512 bytes / 512 bytes</span><br><span class="line">I/O size (minimum/optimal): 512 bytes / 512 bytes</span><br><span class="line">Disklabel type: dos</span><br><span class="line">Disk identifier: 0x5452574f</span><br></pre></td></tr></table></figure>
+<ol start="2">
+<li>到这一步就可以按照帮助列出来的步骤执行就可以了。</li>
+</ol>
+<figure class="highlight plain"><table><tr><td class="code"><pre><span class="line">$ sudo fdisk /dev/sdb</span><br><span class="line">   &gt; p             # prints partition table</span><br><span class="line">   &gt; d             # 重复执行几次，保证分区都被删除，我重复了两次</span><br><span class="line">   &gt; n             # 创建一个新的分区</span><br><span class="line">   &gt; p             # create primary</span><br><span class="line">   &gt; 1             # make it the first partition</span><br><span class="line">   &gt; &lt;enter&gt;       # 直接回车，使用默认选择</span><br><span class="line">   &gt; +32M          # 空出32M空间用于启动分区</span><br><span class="line">   &gt; n             # create rootfs partition</span><br><span class="line">   &gt; p</span><br><span class="line">   &gt; 2</span><br><span class="line">   &gt; &lt;enter&gt;</span><br><span class="line">   &gt; &lt;enter&gt;       # fill the remaining disk, adjust size to fit your needs</span><br><span class="line">   &gt; t             # change partition type</span><br><span class="line">   &gt; 1             # select first partition</span><br><span class="line">   &gt; e             # use type &apos;e&apos; (FAT16)</span><br><span class="line">   &gt; a             # make partition bootable</span><br><span class="line">   &gt; 1             # select first partition</span><br><span class="line">   &gt; p             # double check everything looks right</span><br><span class="line">   &gt; w             # write partition table to disk.</span><br><span class="line"></span><br><span class="line">run the following as root</span><br><span class="line">   $ sudo mkfs.vfat -F16 -n BOOT /dev/sdb1</span><br><span class="line">   $ sudo mkdir -p /media/boot</span><br><span class="line">   $ sudo mount /dev/sdb1 /media/boot</span><br><span class="line">   $ cd /media</span><br><span class="line">   # 这个文件夹是会在 make img-help 产生的</span><br><span class="line">   $ gunzip -cd /home/dee/op-tee/build/../out-br/images/rootfs.cpio.gz | sudo cpio -idmv &quot;boot/*&quot;</span><br><span class="line">   $ sudo umount boot</span><br><span class="line"></span><br><span class="line">run the following as root</span><br><span class="line">   $ sudo mkfs.ext4 -L rootfs /dev/sdb2</span><br><span class="line">   $ sudo mkdir -p /media/rootfs</span><br><span class="line">   $ sudo mount /dev/sdb2 /media/rootfs</span><br><span class="line">   $ cd rootfs</span><br><span class="line">   $ gunzip -cd /home/dee/op-tee/build/../out-br/images/rootfs.cpio.gz | sudo cpio -idmv</span><br><span class="line">   $ sudo rm -rf /media/rootfs/boot/*</span><br><span class="line">   $ cd .. &amp;&amp; sudo umount rootfs</span><br></pre></td></tr></table></figure>
+
+<ol start="3">
+<li>将SD卡取出，插入到RaspPi中。</li>
+<li>安装串口驱动并且打开串口。同时将树莓派的<code>TXD、RXD</code>连接USB转串口<code>RXD、TXD</code>，并且连接<code>GND</code>，不用连VCC。<figure class="highlight plain"><table><tr><td class="code"><pre><span class="line">sudo apt-get install picocom</span><br><span class="line">sudo picocom -b 115200 /dev/ttyUSB0</span><br></pre></td></tr></table></figure></li>
+<li>看到ubuntu终端显示Terminal ready之后，给树莓派上电，应该就能看到以下信息。如果没有反应，请重复从第2个步骤开始（别问我怎么知道的）。</li>
+</ol>
+<figure class="highlight plain"><table><tr><td class="code"><pre><span class="line">Terminal ready</span><br><span class="line">NOTICE:  Booting Trusted Firmware</span><br><span class="line">NOTICE:  BL1: v2.0(debug):v2.0-580-g023bc01</span><br><span class="line">NOTICE:  BL1: Built : 14:48:09, Nov 10 2019</span><br><span class="line">INFO:    BL1: RAM 0x100ee000 - 0x100f7000</span><br><span class="line">INFO:    BL1: cortex_a53: CPU workaround for 843419 was applied</span><br><span class="line">INFO:    BL1: cortex_a53: CPU workaround for 855873 was applied</span><br><span class="line">NOTICE:  rpi3: Detected: Raspberry Pi 3 Model B (1GB, Sony, UK) [0x00a02082]</span><br><span class="line">INFO:    BL1: Loading BL2</span><br><span class="line">INFO:    Loading image id=1 at address 0x100b4000</span><br><span class="line">INFO:    Image id=1 loaded: 0x100b4000 - 0x100b9410</span><br><span class="line">NOTICE:  BL1: Booting BL2</span><br><span class="line">INFO:    Entry point address = 0x100b4000</span><br></pre></td></tr></table></figure>
+<ol start="6">
+<li>run test，看到以下信息之后，输入<code>test</code>就可以进入shell了。<figure class="highlight plain"><table><tr><td class="code"><pre><span class="line">Welcome to Buildroot, type root or test to login</span><br><span class="line">buildroot login:</span><br></pre></td></tr></table></figure>
+然后运行<code>xtest</code>就会冒出一大堆信息，<code>xtest</code>是OP-TEE自带用来测试的一个CA（Client App）可执行文件，该CA执行后会调用TA(Trusted App)招聘美工的各种功能，包括检查基本算法接口、安全存储接口等。</li>
+</ol>
+<p>好了，到这里我们要做的也基本成功了。最后分析以下RaspPi的启动流程。</p>
+<h1 id="RaspPi启动流程分析"><a href="#RaspPi启动流程分析" class="headerlink" title="RaspPi启动流程分析"></a>RaspPi启动流程分析</h1><ul>
+<li>与PC启动过程类似，首先GPU加载存储在片上系统ROM中的BootLoader(BIOS)，然后BootLoader去读SD-Card将第二阶段BootLoader（<code>bootcode.bin</code>）加载进<code>L2 Cache</code>，并让出控制权。</li>
+<li><code>bootcode.bin</code>使能SDRAM，然后从SD-Card中读第三阶段的bootloader <code>loader.bin</code>到RAM中，并运行。</li>
+<li><code>loader.bin</code>读GPU固件<code>start.elf</code></li>
+<li><code>start.elf</code>读<code>config.txt</code>，预加载<code>armstub8.bin</code>加载到<code>0x0</code>位置并跳转到第一条指令，bin文件中包含了BL1/TF-A + BL2/TF-A + BL31/TF-A + BL32/OP-TEE + BL33/U-boot</li>
+<li>然后就一个加载一个并执行，如BL1加载BL2然后执行BL2。</li>
+<li>U-boot运行<code>fatload/booti</code>过程将<code>zImage</code>和<code>DTB</code>从eMMC加载到RAM中，然后启动。</li>
+</ul>
+<p>真是有点复杂，每一步的具体操作之后分析。</p>
+]]></content>
+      <categories>
+        <category>TrustZone</category>
+      </categories>
+      <tags>
+        <tag>TrustZone</tag>
+        <tag>系统安全</tag>
+        <tag>从入门到放弃</tag>
+      </tags>
+  </entry>
+  <entry>
+    <title>硬件辅助安全：（1）Intel SGX技术背景</title>
+    <url>/2019/11/06/Intel_SGX%E6%8A%80%E6%9C%AF%E8%83%8C%E6%99%AF/</url>
+    <content><![CDATA[<p>利用硬件保证系统、数据的安全需求十分迫切，各CPU厂商都推出了自己的解决方案。本文就Intel提出的SGX(Software  Guard Extention)展开讨论（之后不出意外会写关于ARM的TrustZone的介绍）。</p><p>在说具体的技术之前，我们先来讲讲关于安全的故事。最初考虑到安全性问题，大多数的CPU架构，包括Intel的x86都实现了保护环（Protection Ring）机制来保护操作系统免受用户软件的威胁，或是任意占用系统资源等。操作系统一般都运行在RING-0上，其可以访问所有的硬件资源。用户程序则运行在RING-3上，需要利用OS提供的系统调用来访问硬件资源。操作系统作为特权管理者，可以限制普通的应用程序无法随意访问硬件资源。</p><a id="more"></a>
+
+<p>但是在<strong>云计算的时代，很多公司以及企业都将自己的服务转移到第三方提供的云计算中心去</strong>，例如谷歌、亚马逊、阿里云等。这样就会产生一种不信任问题：首先如果只是用来存储数据问题不是很大，因为客户可以在数据传输到云上之前就进行加密；但是<strong>如果客户需要在云上进行计算，总会要将数据解密后加载到云上虚拟机内存中</strong>。虚拟机可以确保我们的数据不会被其他虚拟机所访问，但是云提供商的虚拟机管理程序却可以轻易访问到我们虚拟机中的数据。</p>
+<p>不信任问题真的很难受，要解决安全问题，就需要用性能来换。你看最初的网络通信协议多么简单，最后硬是提出并实现多种机制来确保数据的机密性与完整性。不过攻守这个过程倒是挺令人热血沸腾的。</p>
+<p>哎扯远了，回到正题：那么我们怎么来确保云服务提供商不会窃取我们的机密性数据呢？实际上问题很明显，我们不能信任操作系统、虚拟机管理软件（VMM OR Hyperbvisor）甚至BIOS，所以我们要实现一种机制来确保上面提到的特权软硬件无法访问到用户程序需要受保护的数据。像TPM<sup>1</sup>(Trusted Platform Module)以及Intel 的TXT<sup>2</sup>(Trusted Execution Technology)硬件技术可以被用来在操作系统或虚拟机的启动过程创建一个信任基（root-of-trust），从而为软件创建一个可信执行环境（TEE, Trusted Execution Enviroment）。（关于1，2的内容可见附录）这些技术在某种程度上可以提供某些完整性保证，但不能保护TEE内部运行的软件的<strong>机密性(Confidentiality)</strong>。</p>
+<p>而在移动端呢，ARM的TrustZone技术也同样能提供一个可信执行环境，这个环境能保护特权级软件软件免受不信任的用户程序的入侵。本质上TZ就是将处理器、内存等资源划分为两个部分，一部分提供给Rich OS使用（正常世界也称为非安全世界，保留现在操作系统的富足功能），另一部分提供给TEE OS使用（安全世界，减少OS的代码量，同时存储例如指纹、密码等数据），从硬件上实现了正常世界不能随意访问安全世界的内存等资源。在这种情况下，就算Rich OS被攻击，也不会影响到机密数据。但TZ不能满足我们当前需求，因为TZ不能做到保护用户程序免受特权级程序的影响。</p>
+<p>为了给用户空间软件提供所需的机密性和完整性保证，英特尔在原来的TXT基础上进一步提升，开发了新的硬件安全功能Intel SGX（在x64指令集上进行扩展，在第6代CPU中才有），该技术应该能够为用户空间软件创建TEE来免于特权软件的影响。</p>
+<p>最后，我们来总结一下。我们应该能明白Intel SGX与 ARM TZ在需求与解决应用问题之间的区别了。Intel SGX可以为<strong>用户级程序提供保护</strong>。那么Intel SGX到底是通过什么机制来保护用户程序数据的机密性与完整性的呢？我们如何利用Intel SGX技术来编写安全应用呢？ 问题很多，慢慢记录…!</p>
+<h1 id="参考文献"><a href="#参考文献" class="headerlink" title="参考文献"></a>参考文献</h1><p>[1] Intel Corporation. “Intel 64 and IA-32 Architectures Software Developer’s Manual Volume 3.”<br>[2] Kristoffer Severinsen. “Secure Programming with Intel SGX and Novel Applications.”<br>[3] WhatIs.com. <a href="https://whatis.techtarget.com/definition/trusted-platform-module-TPM" target="_blank" rel="noopener">https://whatis.techtarget.com/definition/trusted-platform-module-TPM</a></p>
+<h1 id="附录"><a href="#附录" class="headerlink" title="附录"></a>附录</h1><h2 id="软件认证（Software-Attestation）"><a href="#软件认证（Software-Attestation）" class="headerlink" title="软件认证（Software Attestation）"></a>软件认证（Software Attestation）</h2><p>在软件运行之前，由可信硬件对其进行测度（measure），然后由硬件模块使用其保存的私钥对软件测度（Measurement）进行签名来创建一个证明签名（attestation signature）。证明签名只能由防篡改硬件来创建，在检测阶段使用同样的方式对软件进行测度，然后将这个内容与使用公钥解出来的签名进行对比，如果不一致则证明软件被篡改了。这一部分不了解的话，可以去学习一下RSA非对称密钥的知识。</p>
+<h2 id="TPM-Trusted-Platform-Module"><a href="#TPM-Trusted-Platform-Module" class="headerlink" title="TPM(Trusted Platform Module)"></a>TPM(Trusted Platform Module)</h2><p>可信平台模块（TPM）<sup>[1]</sup>是终端设备上的专用芯片，用于存储特定于主机系统的RSA加密密钥以进行硬件层的辅助认证。每个TPM芯片都包含一个称为“认可密钥（EK）”的RSA密钥对。密钥对保持在芯片内部，无法通过软件访问。</p>
+<p>存储根密钥（The Storage Root Key）会在管理员获得系统拥有权时，根据EK和所有者指定的密码生成。TPM希望在引导过程的每个阶段都能report下一个阶段软件的hash值，从而能对启动过程的每个软件都进行测度。理想很丰满，但现实中不同供应商（vendors）提供的计算机可能运行不同的OS内核、驱动以及固件，那么不同的软件模块就没有TPM预期的度量源。当然TPM还可以用来对数据进行加密/解密操作，因为它使用的密钥绝不会被盗取。</p>
+<p>Intel 的可信执行环境TXT（Trusted Execution Environment）是集成在CPU中一些硬件功能，是Intel SGX的前身。英特尔®可信执行技术是对英特尔®处理器和芯片组的一组硬件扩展, 用于增强具有安全功能的数字办公平台 (如测量的启动和受保护的执行)。英特尔可信执行技术提供了基于硬件的机制, 有助于防止基于软件的攻击, 并保护在客户端 PC 上存储或创建的数据的保密性和完整性。依赖于TPM，Intel TXT可以允许运行在系统上的软件为其他软件创建一个可度量的加载环境，从而实现前面所述的安全启动过程。</p>
+<h2 id="ARM-TrustZone"><a href="#ARM-TrustZone" class="headerlink" title="ARM TrustZone"></a>ARM TrustZone</h2><p>相对Intel 的 TXT，ARM的TrustZone由ARM处理器架构下的一些硬件组成。它可以将系统资源划分为两个部分：一部分提供给Rich OS使用（正常世界也称为非安全世界，保留现在操作系统的富足功能），另一部分提供给TEE OS使用（安全世界，减少OS的代码量，同时存储例如指纹、密码等需要保护的数据），并且从硬件上实现正常世界不能随意访问安全世界的内存等资源。由TrustZone提供的TEE典型应用有：可信启动、认证、支付信息保护、加密以及移动设备管理。</p>
+]]></content>
+      <categories>
+        <category>系统安全</category>
+      </categories>
+      <tags>
+        <tag>硬件辅助安全</tag>
+        <tag>TrustZone</tag>
+      </tags>
+  </entry>
+  <entry>
+    <title>SeedProject:网络安全实验——拒绝纸上谈兵</title>
+    <url>/2019/11/03/SeedLab/</url>
+    <content><![CDATA[<p>网络安全课上接触到SeedProject，强调动手做安全实验，拒绝纸上谈兵 -&gt; <code>talk is cheap, Show me the code</code>；拒绝脚本小子，做到知其然，知其所以然。在这边向大家推荐一波，毕竟这么好的平台不能一个人独享（hhhh…）。</p><p>市面上很多网络安全书籍都是互相”借鉴”，同时也只是在原理上描述了现存攻击的方式与原理。但我认为网络与计算机安全方面的内容，如果只是枯燥的阅读书籍是很容易遗忘而且不能即时获得一种成就感。雪城大学Wenliang Du教授认识到这一点，推出<a href="https://seedsecuritylabs.org/index.html" target="_blank" rel="noopener">SeedProject</a>。这个网站提供了一个预建的Ubuntu16.04虚拟机映像，很多实验环境都已经预装好了。<a href="https://seedsecuritylabs.org/lab_env.html" target="_blank" rel="noopener">这里有教你怎么配置实验环境</a>。</p><a id="more"></a>
+
+<p>这里不仅仅只有关于网络安全的实验，还有系统安全（我觉得这个最有意思）、软件安全甚至还有安卓安全等等。</p>
+<p><img src="/2019/11/03/SeedLab/20191103092045735_9627.png" alt="SeedLabs目录"></p>
+<p>这个平台很大的一个亮点是，它提供了一个比较详细的实验文档，对于简单难度的Lab基本跟着文档就能在明白原理的前提下过完整个Lab，大家可以先try一下简单的Lab。对于某些有趣的实验，我写了自己的实验过程和源代码，<a href="https://github.com/SmallPond/SeedLabs" target="_blank" rel="noopener">可以参考这里</a>，不定期更新（逃…。</p>
+<ul>
+<li>网络安全<ul>
+<li>Packet Sniffing and Spoofing Lab（包嗅探与欺骗）</li>
+<li>ARP Cache Poisoning Attack Lab （ARP缓存攻击）</li>
+<li>TCP/IP Attack Lab （利用 TCP/IP 缺陷攻击）</li>
+<li>Heartbleed Attack Lab</li>
+<li>Local DNS Attack Lab （本地DNS攻击，相对简单）</li>
+<li>Remote DNS Attack Lab （远端DNS攻击，相对难度高一点）</li>
+<li>Linux Firewall Exploration Lab</li>
+<li>Firewall-VPN Lab – Bypassing Firewalls using VPN</li>
+<li>Virtual Private Network (VPN) Lab（这个实验难度很大）</li>
+</ul>
+</li>
+<li>系统安全<ul>
+<li>Meltdown Attack Lab（利用CPU的漏洞，乱序执行，Cache特性，个人感觉十分有意思）</li>
+<li>Spectre Attack Lab</li>
+</ul>
+</li>
+</ul>
+]]></content>
+      <categories>
+        <category>系统安全</category>
+      </categories>
+      <tags>
+        <tag>网络安全</tag>
+        <tag>计算机安全</tag>
+      </tags>
+  </entry>
+  <entry>
+    <title>MIT6.828-神级OS课程-要是早遇到，我还会是这种 five 系列</title>
+    <url>/2019/11/02/MIT6.828/</url>
+    <content><![CDATA[<h1 id="MIT6-828-Operating-System-Engineering"><a href="#MIT6-828-Operating-System-Engineering" class="headerlink" title="MIT6.828 Operating System Engineering"></a>MIT6.828 Operating System Engineering</h1><p>花了两个月多的时间，终于把 MIT6.828 的课程跟完了。刚接触这个课程时，就有一种感觉：哇，好神奇！ 这个课程真的是循序渐进，一步一步在你的脑海里建立起 OS 的大厦框架。从 Lab1 的手把手教学到 Lab6 的放任你自由，很好地对学生的学习进行了引导。学完这个课程后，你也就拥有了一个属于你自己的完整的内核雏形！</p><a id="more"></a>
+<p>当然这个课程需要一些基础，如汇编语言、操作系统、计算机组成原理以及体系结构等。毕竟操作系统是一门比较底层且考察综合性计算机知识的课程。但这都不是重点，我一直认为，以边学边做的方式来学习一门课程是最好的方式之一（为什么是之一呢，怕被喷…嘻嘻）。只要能坚持下来，最后你会体会到，你已经能从一个与之前完全不同的角度理解计算机！现在微内核概念这么火，鸿蒙就是微内核OS，难道不想从原理上真正理解一下微内核OS吗？ 没错，6.828 这个课程就是引导我们实现了一个微内核操作系统。如果真的对计算机底层比较感兴趣的话，一定要去 try 一下啊~</p>
+<h1 id="1-简介"><a href="#1-简介" class="headerlink" title="1. 简介"></a>1. 简介</h1><p>课程评价：<strong>神级课程——要是早遇到，我还会是这种 five（废物） 系列</strong></p>
+<p>课程网址：<a href="https://pdos.csail.mit.edu/6.828/2018/schedule.html" target="_blank" rel="noopener">6.828: Operating System Engineering</a>，一直跟着其 schedule 走就可以啦。</p>
+<p>xv6 讲义：<a href="https://pdos.csail.mit.edu/6.828/2018/xv6/book-rev11.pdf" target="_blank" rel="noopener">a simple, Unix-like teaching operating system</a>，讲义中会将每个部分的实现讲得十分详细，在代码编写时遇到不太清晰的概念时，可以多参考讲义。</p>
+<p>我的实现环境：</p>
+<ul>
+<li>VMware Workstation虚拟机</li>
+<li>Ubuntu16.04</li>
+<li>qemu，最好使用 MIT 给的 patch 版本（Lab6 用到 pacth 版本的qemu 较多）。安装方法也可参考<a href="https://pdos.csail.mit.edu/6.828/2018/tools.html" target="_blank" rel="noopener">Tools Used in 6.828</a> 链接</li>
+<li>工具链 <a href="https://pdos.csail.mit.edu/6.828/2018/tools.html" target="_blank" rel="noopener">Tools Used in 6.828</a></li>
+</ul>
+<p>环境搭建网络上教程很多，这里我就不再赘述，直接给出别的大佬写的教程：<a href="https://www.cnblogs.com/gatsby123/p/9746193.html" target="_blank" rel="noopener">MIT-6.828-JOS-环境搭建</a></p>
+<h1 id="2-Xv6"><a href="#2-Xv6" class="headerlink" title="2. Xv6"></a>2. Xv6</h1><p>学习6.828时，你会发现经常遇到 xv6 和 JOS这两个名词，不明白它们两者之间的关系，在完成实验时思路就会不是很清晰。xv6 是一个类Unix的教学操作系统，而 JOS 是在xv6的基础上改写，让我们能在其上进行实验的 OS。 所以实际上，当我们遇到不会实现的问题时，可以去参考 xv6 相应部分的源码。</p>
+<p>Homework 实现：完整实现代码。<a href="https://github.com/SmallPond/MIT6.828_OS/tree/master/xv6-public" target="_blank" rel="noopener">Github_SmallPond/MIT6.828_OS</a></p>
+<ul>
+<li><a href="https://blog.csdn.net/Small_Pond/article/details/90544379" target="_blank" rel="noopener">MIT6.828_Homework_Shell_MIT_6.828</a></li>
+<li><a href="https://blog.csdn.net/Small_Pond/article/details/90665444" target="_blank" rel="noopener">MIT6.828_HW2_Boot_xv6_MIT6.828</a></li>
+<li><a href="https://blog.csdn.net/Small_Pond/article/details/91345372" target="_blank" rel="noopener">MIT6.828_HW3_XV6 System calls</a></li>
+<li><a href="https://blog.csdn.net/Small_Pond/article/details/91346550" target="_blank" rel="noopener"> MIT6.828_HW4_xv6 lazy page allocation</a></li>
+<li><a href="https://blog.csdn.net/Small_Pond/article/details/92838818" target="_blank" rel="noopener"> MIT6.828_HW5_xv6 CPU alarm</a></li>
+<li><a href="https://blog.csdn.net/Small_Pond/article/details/92838852" target="_blank" rel="noopener">MIT6.828_HW6_Threads and Locking</a></li>
+<li><a href="https://blog.csdn.net/Small_Pond/article/details/93200120" target="_blank" rel="noopener">MIT6.828_HW7_xv6 locking</a></li>
+<li><a href="https://blog.csdn.net/Small_Pond/article/details/94600772" target="_blank" rel="noopener">MIT6.828_HW8_User-level threads</a></li>
+<li><a href="https://blog.csdn.net/Small_Pond/article/details/94968225" target="_blank" rel="noopener">MIT6.828_HW9_barriers</a></li>
+<li><a href="https://blog.csdn.net/Small_Pond/article/details/95009224" target="_blank" rel="noopener">MIT6.828_HW10_Bigger file for xv6</a></li>
+<li><a href="https://blog.csdn.net/Small_Pond/article/details/95210975" target="_blank" rel="noopener">MIT6.828_HW11_xv6 log</a></li>
+</ul>
+<h1 id="3-JOS"><a href="#3-JOS" class="headerlink" title="3. JOS"></a>3. JOS</h1><p>以下是我实验过程中记下的笔记，包含我的实现思路以及代码。 不过有些重复的细节，我就没有记录，可以参考我的完整实现代码。<a href="https://github.com/SmallPond/MIT6.828_OS" target="_blank" rel="noopener">Github_SmallPond/MIT6.828_OS</a></p>
+<ul>
+<li><p>Lab1 Booting a PC</p>
+<ul>
+<li><a href="https://blog.csdn.net/Small_Pond/article/details/90603631" target="_blank" rel="noopener"> LAB_1_Part1_PC Bootstrap</a></li>
+<li><a href="https://blog.csdn.net/Small_Pond/article/details/90603631" target="_blank" rel="noopener">LAB_1_Part2_The Boot Loader</a></li>
+<li><a href="https://blog.csdn.net/Small_Pond/article/details/90603540" target="_blank" rel="noopener">LAB1_Part3_The Kernel</a></li>
+</ul>
+</li>
+<li><p>Lab2 Memory management</p>
+<ul>
+<li><a href="https://blog.csdn.net/Small_Pond/article/details/90742208" target="_blank" rel="noopener">LAB2_Part1_Physical Page Management</a></li>
+<li><a href="https://blog.csdn.net/Small_Pond/article/details/91038373" target="_blank" rel="noopener">LAB2_Part2_Virtual Memory</a></li>
+<li><a href="https://blog.csdn.net/Small_Pond/article/details/91288098" target="_blank" rel="noopener"> LAB2_Part3_Kernel Address Space(内核地址空间)</a></li>
+</ul>
+</li>
+<li><p>Lab3 User-Level Environments</p>
+<ul>
+<li><a href="https://blog.csdn.net/Small_Pond/article/details/92688212" target="_blank" rel="noopener">LAB3_User-Level Environments_PartA_User Environments and Exception Handling</a></li>
+<li><a href="https://blog.csdn.net/Small_Pond/article/details/92806443" target="_blank" rel="noopener">LAB3_User-Level Environments_PartB Page Faults, Breakpoints Exceptions, and System Calls</a></li>
+</ul>
+</li>
+<li><p>Lab4 Preemptive Multitasking_</p>
+<ul>
+<li><a href="https://blog.csdn.net/Small_Pond/article/details/93232270" target="_blank" rel="noopener">LAB4_Preemptive Multitasking_PartA Multiprocessor Support and Cooperative Multitasking</a></li>
+<li><a href="https://blog.csdn.net/Small_Pond/article/details/94558421" target="_blank" rel="noopener">LAB4_Preemptive Multitasking_PartB Copy-on-Write Fork</a></li>
+<li><a href="https://blog.csdn.net/Small_Pond/article/details/94862893" target="_blank" rel="noopener">LAB4_Preemptive Multitasking_PartC Preemptive Multitasking and IPC</a></li>
+</ul>
+</li>
+<li><p>Lab5 File system, Spawn and Shell</p>
+<ul>
+<li><a href="https://blog.csdn.net/Small_Pond/article/details/95765544" target="_blank" rel="noopener">Lab5_File system, Spawn and Shell</a></li>
+</ul>
+</li>
+<li><p>Lab6 Network Driver</p>
+<ul>
+<li><a href="https://blog.csdn.net/Small_Pond/article/details/96323655" target="_blank" rel="noopener">Lab6_Network Driver</a></li>
+</ul>
+</li>
+</ul>
+<h1 id="4-参考文献"><a href="#4-参考文献" class="headerlink" title="4. 参考文献"></a>4. 参考文献</h1><ol>
+<li><a href="https://www.cnblogs.com/fatsheep9146/category/769143.html" target="_blank" rel="noopener">MIT 6.828 JOS 操作系统学习笔记/fatsheep9146</a>，刚入门时参考，包括环境搭建。博文写得十分详细，可惜貌似只写到了 Lab2。</li>
+<li><a href="https://github.com/clpsz/mit-jos-2014" target="_blank" rel="noopener">clpsz/mit-jos-2014</a>，此大神放出了自己到 Lab4 的代码，其文档提及了一些细节，很有帮助。</li>
+<li><a href="https://buweilv.github.io/categories/OS/" target="_blank" rel="noopener">Unknown Unknown</a>，过程较详细（相当于对官方文档做了一遍翻译），英语不好可以参考这边，但我还是建议以官方文档为主，毕竟英语还是要学好呀。这位大神做到了LAB5，但不包括HW。</li>
+<li><a href="https://blog.csdn.net/bysui/article/category/6232831" target="_blank" rel="noopener">bysui的博客</a>, 这位大神完成了全部的实验，但是我在后面才发现这么好的资源！</li>
+</ol>
+<p>我的课程能顺利完成，少不了各位大佬记录下的实验过程，由衷感谢以上各位大神。同时希望我也能帮到后来的学习者~</p>
+]]></content>
+      <categories>
+        <category>操作系统</category>
+      </categories>
+      <tags>
+        <tag>MIT6.828</tag>
+        <tag>操作系统</tag>
+      </tags>
+  </entry>
+  <entry>
+    <title>Hello World</title>
+    <url>/2019/10/24/hello-world/</url>
+    <content><![CDATA[<p>Welcome to <a href="https://hexo.io/" target="_blank" rel="noopener">Hexo</a>! This is your very first post. Check <a href="https://hexo.io/docs/" target="_blank" rel="noopener">documentation</a> for more info. If you get any problems when using Hexo, you can find the answer in <a href="https://hexo.io/docs/troubleshooting.html" target="_blank" rel="noopener">troubleshooting</a> or you can ask me on <a href="https://github.com/hexojs/hexo/issues" target="_blank" rel="noopener">GitHub</a>.</p><a id="more"></a>
+<h2 id="Quick-Start"><a href="#Quick-Start" class="headerlink" title="Quick Start"></a>Quick Start</h2><h3 id="Create-a-new-post"><a href="#Create-a-new-post" class="headerlink" title="Create a new post"></a>Create a new post</h3><figure class="highlight bash"><table><tr><td class="code"><pre><span class="line">$ hexo new <span class="string">"My New Post"</span></span><br></pre></td></tr></table></figure>
+
+<p>More info: <a href="https://hexo.io/docs/writing.html" target="_blank" rel="noopener">Writing</a></p>
+<h3 id="Run-server"><a href="#Run-server" class="headerlink" title="Run server"></a>Run server</h3><figure class="highlight bash"><table><tr><td class="code"><pre><span class="line">$ hexo server</span><br></pre></td></tr></table></figure>
+
+<p>More info: <a href="https://hexo.io/docs/server.html" target="_blank" rel="noopener">Server</a></p>
+<h3 id="Generate-static-files"><a href="#Generate-static-files" class="headerlink" title="Generate static files"></a>Generate static files</h3><figure class="highlight bash"><table><tr><td class="code"><pre><span class="line">$ hexo generate</span><br></pre></td></tr></table></figure>
+
+<p>More info: <a href="https://hexo.io/docs/generating.html" target="_blank" rel="noopener">Generating</a></p>
+<h3 id="Deploy-to-remote-sites"><a href="#Deploy-to-remote-sites" class="headerlink" title="Deploy to remote sites"></a>Deploy to remote sites</h3><figure class="highlight bash"><table><tr><td class="code"><pre><span class="line">$ hexo deploy</span><br></pre></td></tr></table></figure>
+
+<p>More info: <a href="https://hexo.io/docs/deployment.html" target="_blank" rel="noopener">Deployment</a></p>
+]]></content>
+  </entry>
+</search>
