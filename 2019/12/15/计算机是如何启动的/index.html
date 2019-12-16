@@ -1,0 +1,552 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
+<meta name="theme-color" content="#222">
+<meta name="generator" content="Hexo 4.0.0">
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png">
+  <link rel="mask-icon" href="/images/logo.svg" color="#222">
+
+<link rel="stylesheet" href="/css/main.css">
+
+
+<link rel="stylesheet" href="/lib/font-awesome/css/font-awesome.min.css">
+
+
+<script id="hexo-configurations">
+  var NexT = window.NexT || {};
+  var CONFIG = {
+    root: '/',
+    scheme: 'Pisces',
+    version: '7.4.2',
+    exturl: false,
+    sidebar: {"position":"right","display":"post","offset":12,"onmobile":false},
+    copycode: {"enable":false,"show_result":false,"style":null},
+    back2top: {"enable":true,"sidebar":false,"scrollpercent":true},
+    bookmark: {"enable":false,"color":"#222","save":"auto"},
+    fancybox: false,
+    mediumzoom: false,
+    lazyload: false,
+    pangu: false,
+    algolia: {
+      appID: '',
+      apiKey: '',
+      indexName: '',
+      hits: {"per_page":10},
+      labels: {"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}
+    },
+    localsearch: {"enable":true,"trigger":"auto","top_n_per_article":1,"unescape":false,"preload":false},
+    path: 'search.xml',
+    motion: {"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}},
+    translation: {
+      copy_button: 'Copy',
+      copy_success: 'Copied',
+      copy_failure: 'Copy failed'
+    },
+    sidebarPadding: 40
+  };
+</script>
+
+  <meta name="description" content="计算机是如何启动的，网络上很多博文[2]都从 BIOS 程序的加载开始说起，有的也跳到 BIOS 程序加载 Bootloader 阶段。个人认为把这个过程称为操作系统是如何被加载并启动应该更加贴切一点。同时，也有计算机硬件大神的文章[1][5]详细分析计算机加电的过程。在阅读前人的优秀文章之后，归纳总结写下了这篇文章以梳理从计算机上电之前到操作系统开始工作的整个过程。">
+<meta name="keywords" content="计算机启动,Bootloader,BIOS">
+<meta property="og:type" content="article">
+<meta property="og:title" content="计算机是如何启动的？从未上电到操作系统启动">
+<meta property="og:url" content="http:&#x2F;&#x2F;120.78.209.0&#x2F;2019&#x2F;12&#x2F;15&#x2F;%E8%AE%A1%E7%AE%97%E6%9C%BA%E6%98%AF%E5%A6%82%E4%BD%95%E5%90%AF%E5%8A%A8%E7%9A%84&#x2F;index.html">
+<meta property="og:site_name" content="一丁点儿">
+<meta property="og:description" content="计算机是如何启动的，网络上很多博文[2]都从 BIOS 程序的加载开始说起，有的也跳到 BIOS 程序加载 Bootloader 阶段。个人认为把这个过程称为操作系统是如何被加载并启动应该更加贴切一点。同时，也有计算机硬件大神的文章[1][5]详细分析计算机加电的过程。在阅读前人的优秀文章之后，归纳总结写下了这篇文章以梳理从计算机上电之前到操作系统开始工作的整个过程。">
+<meta property="og:locale" content="en">
+<meta property="og:updated_time" content="2019-12-16T01:01:49.000Z">
+<meta name="twitter:card" content="summary">
+
+<link rel="canonical" href="http://120.78.209.0/2019/12/15/%E8%AE%A1%E7%AE%97%E6%9C%BA%E6%98%AF%E5%A6%82%E4%BD%95%E5%90%AF%E5%8A%A8%E7%9A%84/">
+
+
+<script id="page-configurations">
+  // https://hexo.io/docs/variables.html
+  CONFIG.page = {
+    sidebar: "",
+    isHome: false,
+    isPost: true,
+    isPage: false,
+    isArchive: false
+  };
+</script>
+
+  <title>计算机是如何启动的？从未上电到操作系统启动 | 一丁点儿</title>
+  
+
+
+
+
+
+
+  <noscript>
+  <style>
+  .use-motion .brand,
+  .use-motion .menu-item,
+  .sidebar-inner,
+  .use-motion .post-block,
+  .use-motion .pagination,
+  .use-motion .comments,
+  .use-motion .post-header,
+  .use-motion .post-body,
+  .use-motion .collection-header { opacity: initial; }
+
+  .use-motion .site-title,
+  .use-motion .site-subtitle {
+    opacity: initial;
+    top: initial;
+  }
+
+  .use-motion .logo-line-before i { left: initial; }
+  .use-motion .logo-line-after i { right: initial; }
+  </style>
+</noscript>
+
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage">
+  <div class="container use-motion">
+    <div class="headband"></div>
+
+    <header class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-container">
+  <div class="site-meta">
+
+    <div>
+      <a href="/" class="brand" rel="start">
+        <span class="logo-line-before"><i></i></span>
+        <span class="site-title">一丁点儿</span>
+        <span class="logo-line-after"><i></i></span>
+      </a>
+    </div>
+        <p class="site-subtitle">每天进步一丁点儿！</p>
+  </div>
+
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="Toggle navigation bar">
+      <span class="toggle-line toggle-line-first"></span>
+      <span class="toggle-line toggle-line-middle"></span>
+      <span class="toggle-line toggle-line-last"></span>
+    </div>
+  </div>
+</div>
+
+
+<nav class="site-nav">
+  
+  <ul id="menu" class="menu">
+        <li class="menu-item menu-item-home">
+
+    <a href="/" rel="section"><i class="fa fa-fw fa-home"></i>Home</a>
+
+  </li>
+        <li class="menu-item menu-item-tags">
+
+    <a href="/tags/" rel="section"><i class="fa fa-fw fa-tags"></i>Tags</a>
+
+  </li>
+        <li class="menu-item menu-item-categories">
+
+    <a href="/categories/" rel="section"><i class="fa fa-fw fa-th"></i>Categories</a>
+
+  </li>
+        <li class="menu-item menu-item-archives">
+
+    <a href="/archives/" rel="section"><i class="fa fa-fw fa-archive"></i>Archives</a>
+
+  </li>
+      <li class="menu-item menu-item-search">
+        <a role="button" class="popup-trigger"><i class="fa fa-search fa-fw"></i>Search
+        </a>
+      </li>
+  </ul>
+
+</nav>
+  <div class="site-search">
+    <div class="popup search-popup">
+    <div class="search-header">
+  <span class="search-icon">
+    <i class="fa fa-search"></i>
+  </span>
+  <div class="search-input-container">
+    <input autocomplete="off" autocorrect="off" autocapitalize="none"
+           placeholder="Searching..." spellcheck="false"
+           type="text" id="search-input">
+  </div>
+  <span class="popup-btn-close">
+    <i class="fa fa-times-circle"></i>
+  </span>
+</div>
+<div id="search-result"></div>
+
+</div>
+<div class="search-pop-overlay"></div>
+
+  </div>
+</div>
+    </header>
+
+    
+  <div class="back-to-top">
+    <i class="fa fa-arrow-up"></i>
+    <span>0%</span>
+  </div>
+  <div class="reading-progress-bar"></div>
+
+
+    <main class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          
+
+          <div class="content">
+            
+
+  <div class="posts-expand">
+      
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block " lang="en">
+    <link itemprop="mainEntityOfPage" href="http://120.78.209.0/2019/12/15/%E8%AE%A1%E7%AE%97%E6%9C%BA%E6%98%AF%E5%A6%82%E4%BD%95%E5%90%AF%E5%8A%A8%E7%9A%84/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar_name.gif">
+      <meta itemprop="name" content="丁标">
+      <meta itemprop="description" content="">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="一丁点儿">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          计算机是如何启动的？从未上电到操作系统启动
+        </h1>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              <span class="post-meta-item-text">Posted on</span>
+
+              <time title="Created: 2019-12-15 20:30:39" itemprop="dateCreated datePublished" datetime="2019-12-15T20:30:39+08:00">2019-12-15</time>
+            </span>
+              <span class="post-meta-item">
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-calendar-check-o"></i>
+                </span>
+                <span class="post-meta-item-text">Edited on</span>
+                <time title="Modified: 2019-12-16 09:01:49" itemprop="dateModified" datetime="2019-12-16T09:01:49+08:00">2019-12-16</time>
+              </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              <span class="post-meta-item-text">In</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/%E8%AE%A1%E7%AE%97%E6%9C%BA%E7%B3%BB%E7%BB%9F/" itemprop="url" rel="index">
+                    <span itemprop="name">计算机系统</span>
+                  </a>
+                </span>
+            </span>
+
+          
+            <span class="post-meta-item" title="Views" id="busuanzi_container_page_pv" style="display: none;">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-eye"></i>
+              </span>
+              <span class="post-meta-item-text">Views: </span>
+              <span id="busuanzi_value_page_pv"></span>
+            </span><br>
+            <span class="post-meta-item" title="Symbols count in article">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-file-word-o"></i>
+              </span>
+                <span class="post-meta-item-text">Symbols count in article: </span>
+              <span>3.8k</span>
+            </span>
+            <span class="post-meta-item" title="Reading time">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-clock-o"></i>
+              </span>
+                <span class="post-meta-item-text">Reading time &asymp;</span>
+              <span>3 mins.</span>
+            </span>
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+        <p>计算机是如何启动的，网络上很多博文[2]都从 BIOS 程序的加载开始说起，有的也跳到 BIOS 程序加载 Bootloader 阶段。个人认为把这个过程称为操作系统是如何被加载并启动应该更加贴切一点。同时，也有计算机硬件大神的文章[1][5]详细分析计算机加电的过程。在阅读前人的优秀文章之后，归纳总结写下了这篇文章以梳理从计算机上电之前到操作系统开始工作的整个过程。</p><a id="more"></a>
+<h1 id="开机键按下之前：黑暗中的一点星光"><a href="#开机键按下之前：黑暗中的一点星光" class="headerlink" title="开机键按下之前：黑暗中的一点星光"></a>开机键按下之前：黑暗中的一点星光</h1><p>“滴答…滴答…”微弱的声音有规律地响起。</p>
+<p>“是谁？”从睡梦中醒来，身边漆黑一片，我惊呼出声。</p>
+<p>“哇，终于有朋友过来陪我玩了。你好你好，我是 RTC 芯片，你可以叫我小 R，计算机世界的时间由我掌控哦，厉害吧~”，小R（实时时钟）得瑟地说。</p>
+<p>我刚想说话，一个年迈爽朗的笑声传来，“哈哈，孩子，你又偷偷溜出来玩啦。”一位老爷爷走过来，慈祥地摸着小 R 的小脑袋说。</p>
+<p>“家里太无聊了嘛，都没人可以陪我一起玩，没有”电”，大家都不说话。对啦，这是我的电池爷爷，爷爷特别喜欢我，能让我一直活跃着呢！”</p>
+<p>我一拍脑袋，感情这是来到了计算机的世界呀，而且还是没接入电源之前的计算机。在没有外部电源的情况下，基本只有 RTC 和 CMOS 在 RTC 电源供电的情况下才能正常工作。在台式机中“电池爷爷”一般是纽扣电池。RTC 用以保持机器内部时钟的运转，这也是为什么我们的计算机关机之后再次启动时间还是准确的（不考虑操作系统启动后，利用网络同步时间）。而 CMOS 是电脑主板上的一块可读写的RAM芯片。因为可读写的特性，所以在电脑主板上用来保存 BIOS 设置电脑硬件参数后的数据。在计算机领域，CMOS 常指保存计算机基本启动信息（如日期、时间、启动设置等）的芯片。</p>
+<p>正回想着，突然天空一道光柱射向地面，后如溪流一般四处蔓延开来。“嘻嘻，有新朋友要醒来咯”，小 R 边跳边喊。“电池爷爷，您辛苦啦，回去休息吧，现在我能靠外面的能源生活啦。”</p>
+<p>看来是外部的 ATX 电源接入了。ATX 会使用 +5VSB 电源唤醒一部分小伙伴，例如南桥（系统 I/O 芯片）、EC（嵌入式控制器，单片机）等。<strong>“+5V Stand-By 电压为开机电路和需要唤醒机器的WOL(Wake-up On Lan)和 USB 等设备提供电源”[7]，不会为 CPU 等提供工作电压。</strong> 这里需要说明一下，实际上不同的主板、应用场景都会采用不同的电源时序控制方案，笔记本采用 EC，台式机很多用SIO（Super I/O）或者定制芯片，嵌入式设备以及手机采用PMIC（Power Management IC）。以上的故事都是基于台式机形式，但是我们选用 EC 来解释电源时序控制过程，是考虑到国内关于 EC 的资料较多。与台式机不同的一点是，笔记本因为有锂电池的原因，在没有接入电源适配器前，EC 以及南桥就已经处于工作状态了。这也是为什么我们打开笔记本电脑，按下开机键，系统能接收到这个信号，并准备开始工作。</p>
+<p>讨论到这里，基本可以形成这样一个概念：在关机状态下，只有 RTC 、EC 以及南桥部分组件在工作。RTC 维持着计算机的时钟和 CMOS 信息，而 EC 则在等待用户按下开机键。当然 EC 还负责电池的充放电的检测，指示灯，功能键等功能。</p>
+<h1 id="黎明：计算机开始运转"><a href="#黎明：计算机开始运转" class="headerlink" title="黎明：计算机开始运转"></a>黎明：计算机开始运转</h1><p>主人说要有光，按下了神圣的开机键。EC 在黑暗中接收到这个<code>PWRSW#</code>信号，兴奋地不行，立马去通知南桥，“PM_PWRBTN#！ PM_PWRBTN#！ 我们的黎明到来啦！”。</p>
+<p>“好啦，我知道！”，南桥回应 EC 三个信号<code>SLP_S5#</code>（退出 S5 关机状态），<code>SLP_S4#</code>（退出 S4 休眠状态），<code>SLP_S3#</code>（退出 S3 待机状态）。</p>
+<p>“ATX电源，赋予我们光明吧！”EC 收到南桥发来的信号后，明白南桥已经准备就绪。ATX电源收到信号，开始工作，发出各路基本电压给主板上的各个元件。然后发送<code>PWROK#</code>信号给 EC，并由 EC 转发给南桥与北桥……经过一系列你来我往（这个流程必须严格控制，任意一步出错都会造成计算机无法正常启动），终于等到通知 CPU 老大的时刻啦。</p>
+<p>”嘿，北桥大哥，我们叫 CPU 老大醒来指挥我们吧。我会告诉 CPU 老大电源都准备就绪啦。“，南桥发送<code>PLT_RST#</code>给北桥，紧接着向 CPU 发送 <code>PWRGOOD#</code>信号。北桥接收到南桥的信号，默念一秒钟后，向 CPU 老大发送了<code>CPU_RST#</code>信号。</p>
+<p>从此计算机世界开始热闹起来。</p>
+<h1 id="BIOS-现身"><a href="#BIOS-现身" class="headerlink" title="BIOS 现身"></a>BIOS 现身</h1><p>目前只是所有硬件开始工作，如果整个系统中没有指令存在，CPU 醒来也不知道该去做什么。计算机启动的英文表达是<code>bootstrap</code>，这来自于一句谚语：”pull oneself up by one’s bootstraps”，意思是”拽着自己的鞋带把自己拉起来“。</p>
+<blockquote>
+<p>这当然是不可能的事情。最早的时候，工程师们用它来比喻，计算机启动是一个很矛盾的过程：必须先运行程序，然后计算机才能启动，但是计算机不启动就无法运行程序！早期真的是这样，必须想尽各种办法，把一小段程序装进内存，然后计算机才能正常运行[2]。</p>
+</blockquote>
+<p>那么这就是BIOS阶段了。具体是如何工作的呢？</p>
+<p>CPU 一醒来，毫不迟疑，立马开始工作。CPU 知道自己的使命，第一步就是取地址<code>0xFFFFFFF0</code>上的指令（CPU 设计时固化的功能）。CPU拿到指令后执行，发现这条指令是告知自己，下一次去另一个地址取指（跳转指令<code>jmp [0xF000,0xE05B]</code>）。喔，想起来了，这是 BIOS 老弟等我去执行他保存的那一堆指令呢！CPU 又立马开始工作，通过 FSB（前端总线）将这个地址发送到北桥，然后通过 HUB-LINK 到南桥，通过LPC（Low Pin Count Bus）到 EC，再通过 X-BUS 一直到达 BIOS 取指令。在CPU读到所发出的地址内的指令后，开始 BIOS 程序执行。</p>
+<p>BIOS 芯片中也保存了不少指令，形成的功能包括：</p>
+<ul>
+<li>自诊断程序：读取 CMOS 中的内容获得硬件配置信息，并对其进行自检和初始化；完整的 POST(Power On Self Test) 自检将包括CPU、640K基本内存、1M以上的扩展内存、ROM、主板、 CMOS RAM、串并口、显示卡、软硬盘子系统及键盘测试。</li>
+<li>CMOS 设置程序：引导过程中，用特殊热键启动，进行设置后，存入CMOS RAM中；对应 Dell 计算机启动时我们按F12，进入的 BIOS 设置界面。</li>
+<li>系统自举装载程序：在自检成功后将磁盘相对 0 道 0 扇区上的引导程序装入内存，让其运行引导操作系统；</li>
+<li>主要 I/O 设备的驱动程序和中断服务：系统硬件的变化由 BIOS 隐藏，程序使用 BIOS 功能而不是直接控制硬件。不过现代操作系统会忽略 BIOS 提供的抽象层并直接控制硬件组件。</li>
+</ul>
+<h1 id="操作系统引导：Bootloader"><a href="#操作系统引导：Bootloader" class="headerlink" title="操作系统引导：Bootloader"></a>操作系统引导：Bootloader</h1><p>在前面提到，BIOS 会负责将磁盘相对 0 道 0 扇区的引导程序装入内存。不知道大家是否会有这样的疑问：为什么我们一定需要一个引导程序呢？为什么不能直接让 BIOS 将操作系统加载到内存中？</p>
+<p>为了解答这个问题，首先要知道 Bootloader 都实现了什么功能。Bootloader 最直观的功能就是将操作系统加载到内存中。首先可以考虑在硬盘上存在多个操作系统的情况下，操作系统的加载方式过程可能就不同。如果让 BIOS 来考虑各个操作系统待加载到内存中的目的地址，这会导致 BIOS 程序的膨胀。而 BIOS 程序是固化在 BIOS 芯片中，正常情况下是无法修改的，解决加载新的操作系统出现问题就会很麻烦。而保证 BIOS 的正常功能就要降低 BOIS 的复杂性，那么适配不同操作系统的任务谁来做呢？那当然就是 bootloader 啦。并且在嵌入式环境下，操作系统的加载并不仅仅从磁盘上加载，还可能是Nor Flash 、NAND flash、USB 甚至是网络。那么 Bootloader 就应该实现基本的网络功能，例如著名的开源项目 <code>U-Boot</code>就是这样做的。当然本文在这里只是抛砖引玉，为什么要分出一个 Bootloader 层，可以从很多方面分析这样做的优势。</p>
+<p>普通的 Bootloader 都需要实现什么功能呢：</p>
+<ol>
+<li>初始化硬件设备</li>
+<li>为操作系统准备RAM空间</li>
+<li>将操作系统代码载入到RAM中</li>
+<li>设置堆栈执行环境，为高级语言（如 C 语言）提供执行环境。这里要多说一句，操作系统并不都是 C 语言写的哦。现在 Rust 语言接近 C 语言性能，并且因为其提供的安全性，已经被用来写操作系统了。</li>
+<li>将控制权交给操作系统。到这一步，系统的完整启动也就结束啦。之后就是操作系统主宰的世界了！</li>
+</ol>
+<p>如果读者对 Bootloader 的详细工作工作过程感兴趣，可以参考 MIT6.828 操作系统课程 Lab1。这个实验引导学生一步一步 Coding 了操作系统的启动。读者若对操作系统的设计感兴趣，想详细了解这个课程，<a href="https://zhuanlan.zhihu.com/p/74028717" target="_blank" rel="noopener">可以参考这里</a>，墙裂推荐!</p>
+<p>最后，最近读了《码农翻身-用故事给技术加点料》这本书，用故事来讲技术知识。读的时候就觉得作者特别有趣有才，尤其在自己也尝试用故事来讲技术之后，发现真的不容易，直接五体投地的服！</p>
+<p>这是我第一次尝试以<code>拟人+故事</code>的方式来写技术相关的文章，不喜轻喷（逃…</p>
+<h1 id="参考文献"><a href="#参考文献" class="headerlink" title="参考文献"></a>参考文献</h1><p>[1]. 老狼. <a href="https://www.zhihu.com/question/22364502/answer/265811575" target="_blank" rel="noopener">按下开机键后，电脑都干了些什么？ - 老狼的回答 - 知乎</a><br>[2]. 阮一峰. <a href="http://www.ruanyifeng.com/blog/2013/02/booting.html" target="_blank" rel="noopener">计算机是如何启动的？</a><br>[3]. Iknow. <a href="http://iknow.lenovo.com/detail/dc_076023.html" target="_blank" rel="noopener">笔记本电源管理芯片(EC)作用的介绍</a><br>[4]. StackOverflow. <a href="https://stackoverflow.com/questions/15548004/why-do-we-need-a-bootloader-in-an-embedded-device" target="_blank" rel="noopener">Why do we need a bootloader in an embedded device?</a><br>[5]. 人生一次万般活法. <a href="https://www.zhihu.com/question/22364502/answer/99351248" target="_blank" rel="noopener">按下开机键后，电脑都干了些什么？ - 人生一次万般活法的回答 - 知乎</a><br>[6]. W3Cschool BIOS完全手册. <a href="https://www.w3cschool.cn/bioswqsc/vwyzoc.html" target="_blank" rel="noopener">什么是BIOS和COMS</a><br>[7]. 老狼. <a href="https://zhuanlan.zhihu.com/p/54734880" target="_blank" rel="noopener">电源是如何提供电力给主板的，又是如何切断的？</a></p>
+
+    </div>
+
+    
+    
+    
+
+      <footer class="post-footer">
+          <div class="post-tags">
+              <a href="/tags/%E8%AE%A1%E7%AE%97%E6%9C%BA%E5%90%AF%E5%8A%A8/" rel="tag"># 计算机启动</a>
+              <a href="/tags/Bootloader/" rel="tag"># Bootloader</a>
+              <a href="/tags/BIOS/" rel="tag"># BIOS</a>
+          </div>
+
+        
+
+          <div class="post-nav">
+            <div class="post-nav-next post-nav-item">
+                <a href="/2019/11/25/%E4%BA%91%E6%9C%8D%E5%8A%A1%E5%99%A8Git%E9%85%8D%E7%BD%AE/" rel="next" title="云服务器上搭建私有 Git 仓库">
+                  <i class="fa fa-chevron-left"></i> 云服务器上搭建私有 Git 仓库
+                </a>
+            </div>
+
+            <span class="post-nav-divider"></span>
+
+            <div class="post-nav-prev post-nav-item">
+            </div>
+          </div>
+      </footer>
+    
+  </article>
+  
+  
+  
+
+  </div>
+
+
+          </div>
+          
+
+        </div>
+          
+  
+  <div class="toggle sidebar-toggle">
+    <span class="toggle-line toggle-line-first"></span>
+    <span class="toggle-line toggle-line-middle"></span>
+    <span class="toggle-line toggle-line-last"></span>
+  </div>
+
+  <aside class="sidebar">
+    <div class="sidebar-inner">
+
+      <ul class="sidebar-nav motion-element">
+        <li class="sidebar-nav-toc">
+          Table of Contents
+        </li>
+        <li class="sidebar-nav-overview">
+          Overview
+        </li>
+      </ul>
+
+      <!--noindex-->
+      <div class="post-toc-wrap sidebar-panel">
+          <div class="post-toc motion-element"><ol class="nav"><li class="nav-item nav-level-1"><a class="nav-link" href="#开机键按下之前：黑暗中的一点星光"><span class="nav-number">1.</span> <span class="nav-text">开机键按下之前：黑暗中的一点星光</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#黎明：计算机开始运转"><span class="nav-number">2.</span> <span class="nav-text">黎明：计算机开始运转</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#BIOS-现身"><span class="nav-number">3.</span> <span class="nav-text">BIOS 现身</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#操作系统引导：Bootloader"><span class="nav-number">4.</span> <span class="nav-text">操作系统引导：Bootloader</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#参考文献"><span class="nav-number">5.</span> <span class="nav-text">参考文献</span></a></li></ol></div>
+      </div>
+      <!--/noindex-->
+
+      <div class="site-overview-wrap sidebar-panel">
+        <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+  <img class="site-author-image" itemprop="image" alt="丁标"
+    src="/images/avatar_name.gif">
+  <p class="site-author-name" itemprop="name">丁标</p>
+  <div class="site-description" itemprop="description"></div>
+</div>
+<div class="site-state-wrap motion-element">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+          <a href="/archives/">
+        
+          <span class="site-state-item-count">8</span>
+          <span class="site-state-item-name">posts</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-categories">
+            <a href="/categories/">
+          
+        <span class="site-state-item-count">5</span>
+        <span class="site-state-item-name">categories</span></a>
+      </div>
+      <div class="site-state-item site-state-tags">
+            <a href="/tags/">
+          
+        <span class="site-state-item-count">13</span>
+        <span class="site-state-item-name">tags</span></a>
+      </div>
+  </nav>
+</div>
+  <div class="links-of-author motion-element">
+      <span class="links-of-author-item">
+        <a href="https://www.zhihu.com/people/dee-201/activities" title="知乎 &amp;rarr; https:&#x2F;&#x2F;www.zhihu.com&#x2F;people&#x2F;dee-201&#x2F;activities" rel="noopener" target="_blank"><i class="fa fa-fw fa-zhihu"></i>知乎</a>
+      </span>
+      <span class="links-of-author-item">
+        <a href="https://github.com/SmallPond" title="GitHub &amp;rarr; https:&#x2F;&#x2F;github.com&#x2F;SmallPond" rel="noopener" target="_blank"><i class="fa fa-fw fa-github"></i>GitHub</a>
+      </span>
+  </div>
+
+
+
+      </div>
+
+    </div>
+  </aside>
+  <div id="sidebar-dimmer"></div>
+
+
+      </div>
+    </main>
+
+    <footer class="footer">
+      <div class="footer-inner">
+        
+
+<div class="copyright">
+  
+  &copy; 
+  <span itemprop="copyrightYear">2019</span>
+  <span class="with-love">
+    <i class="fa fa-user"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">丁标</span>
+    <span class="post-meta-divider">|</span>
+    <span class="post-meta-item-icon">
+      <i class="fa fa-area-chart"></i>
+    </span>
+    <span title="Symbols count total">21k</span>
+    <span class="post-meta-divider">|</span>
+    <span class="post-meta-item-icon">
+      <i class="fa fa-coffee"></i>
+    </span>
+    <span title="Reading time total">19 mins.</span>
+</div>
+  <div class="powered-by">Powered by <a href="https://hexo.io/" class="theme-link" rel="noopener" target="_blank">Hexo</a> v4.0.0
+  </div>
+  <span class="post-meta-divider">|</span>
+  <div class="theme-info">Theme – <a href="https://pisces.theme-next.org/" class="theme-link" rel="noopener" target="_blank">NexT.Pisces</a> v7.4.2
+  </div>
+
+        
+<div class="busuanzi-count">
+  <script async src="https://busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script>
+    <span class="post-meta-item" id="busuanzi_container_site_uv" style="display: none;">
+      <span class="post-meta-item-icon">
+        <i class="fa fa-user"></i>
+      </span>
+      <span class="site-uv" title="Total Visitors">
+        <span id="busuanzi_value_site_uv"></span>
+      </span>
+    </span>
+    <span class="post-meta-divider">|</span>
+    <span class="post-meta-item" id="busuanzi_container_site_pv" style="display: none;">
+      <span class="post-meta-item-icon">
+        <i class="fa fa-eye"></i>
+      </span>
+      <span class="site-pv" title="Total Views">
+        <span id="busuanzi_value_site_pv"></span>
+      </span>
+    </span>
+</div>
+
+
+
+
+
+
+
+
+
+
+
+
+        
+      </div>
+    </footer>
+  </div>
+
+  
+  <script src="/lib/anime.min.js"></script>
+  <script src="/lib/velocity/velocity.min.js"></script>
+  <script src="/lib/velocity/velocity.ui.min.js"></script>
+<script src="/js/utils.js"></script><script src="/js/motion.js"></script>
+<script src="/js/schemes/pisces.js"></script>
+<script src="/js/next-boot.js"></script>
+
+
+
+  
+
+
+
+
+  <script src="/js/local-search.js"></script>
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+  
+
+</body>
+</html>
