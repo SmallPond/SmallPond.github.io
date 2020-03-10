@@ -133,8 +133,8 @@
         <category>TrustZone</category>
       </categories>
       <tags>
-        <tag>内核保护</tag>
         <tag>TrustZone</tag>
+        <tag>内核保护</tag>
         <tag>系统安全</tag>
       </tags>
   </entry>
@@ -246,8 +246,8 @@
         <category>系统安全</category>
       </categories>
       <tags>
-        <tag>TrustZone</tag>
         <tag>硬件辅助安全</tag>
+        <tag>TrustZone</tag>
       </tags>
   </entry>
   <entry>
