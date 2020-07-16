@@ -1,6 +1,45 @@
 <?xml version="1.0" encoding="utf-8"?>
 <search>
   <entry>
+    <title>Ngrok内网穿透</title>
+    <url>/2020/07/16/ngrok%E9%85%8D%E7%BD%AE/</url>
+    <content><![CDATA[<h1 id="环境配置"><a href="#环境配置" class="headerlink" title="环境配置"></a>环境配置</h1><p>若已熟悉整个流程，可直接使用脚本<a href="#script">完整脚本</a></p><h2 id="Golang"><a href="#Golang" class="headerlink" title="Golang"></a>Golang</h2><figure class="highlight plain"><table><tr><td class="code"><pre><span class="line">wget https://dl.google.com/go/go1.14.4.linux-amd64.tar.gz</span><br><span class="line"></span><br><span class="line"># tar -C /usr/local -xzf go$VERSION.$OS-$ARCH.tar.gz</span><br><span class="line">tar -C /usr/local -xzf go1.14.4.linux-amd64.tar.gz</span><br><span class="line"></span><br><span class="line"></span><br><span class="line">export PATH=$PATH:/usr/local/go/bin</span><br></pre></td></tr></table></figure><a id="more"></a>
+
+
+<h2 id="Ngrok"><a href="#Ngrok" class="headerlink" title="Ngrok"></a>Ngrok</h2><h3 id="下载"><a href="#下载" class="headerlink" title="下载"></a>下载</h3><figure class="highlight plain"><table><tr><td class="code"><pre><span class="line">git clone https://github.com/inconshreveable/ngrok.git</span><br><span class="line"></span><br><span class="line">export GOPATH=/usr/local/ngrok/</span><br><span class="line"></span><br><span class="line">export NGROK_DOMAIN=&quot;ngrok.eshaw.work&quot;</span><br></pre></td></tr></table></figure>
+
+<h3 id="证书生成"><a href="#证书生成" class="headerlink" title="证书生成"></a>证书生成</h3><figure class="highlight plain"><table><tr><td class="code"><pre><span class="line">openssl genrsa -out rootCA.key 2048</span><br><span class="line">openssl req -x509 -new -nodes -key rootCA.key -subj &quot;/CN=$NGROK_DOMAIN&quot; -days 5000 -out rootCA.pem</span><br><span class="line">openssl genrsa -out server.key 2048</span><br><span class="line">openssl req -new -key server.key -subj &quot;/CN=$NGROK_DOMAIN&quot; -out server.csr</span><br><span class="line">openssl x509 -req -in server.csr -CA rootCA.pem -CAkey rootCA.key -CAcreateserial -out server.crt -days 5000</span><br><span class="line"></span><br><span class="line">cp -r rootCA.pem assets/client/tls/ngrokroot.crt</span><br><span class="line">cp -r server.crt assets/server/tls/snakeoil.crt</span><br><span class="line">cp -r server.key assets/server/tls/snakeoil.key</span><br></pre></td></tr></table></figure>
+
+
+<h2 id="编译"><a href="#编译" class="headerlink" title="编译"></a>编译</h2><h3 id="Server"><a href="#Server" class="headerlink" title="Server"></a>Server</h3><figure class="highlight plain"><table><tr><td class="code"><pre><span class="line">GOOS=linux GOARCH=amd64 make release-server</span><br></pre></td></tr></table></figure>
+
+<h3 id="Client"><a href="#Client" class="headerlink" title="Client"></a>Client</h3><figure class="highlight plain"><table><tr><td class="code"><pre><span class="line">GOOS=linux GOARCH=amd64 make release-client</span><br></pre></td></tr></table></figure>
+
+<h2 id="执行"><a href="#执行" class="headerlink" title="执行"></a>执行</h2><ol>
+<li><p>Server</p>
+<figure class="highlight plain"><table><tr><td class="code"><pre><span class="line">ngrokd -domain=&quot;eshaw.work&quot;</span><br></pre></td></tr></table></figure>
+</li>
+<li><p>Client</p>
+<figure class="highlight plain"><table><tr><td class="code"><pre><span class="line">ngrok -config=~/ngrok.yml start ssh http</span><br></pre></td></tr></table></figure>
+
+</li>
+</ol>
+<p>ngrok.yml 配置文件：</p>
+<figure class="highlight plain"><table><tr><td class="code"><pre><span class="line"></span><br><span class="line">server_addr: &quot;eshaw.work:4443&quot;</span><br><span class="line">trust_host_root_certs: false</span><br><span class="line">tunnels:</span><br><span class="line"></span><br><span class="line">        ssh:</span><br><span class="line">                remote_port: 8010</span><br><span class="line">                proto:</span><br><span class="line">                        tcp: 22</span><br><span class="line">        http:</span><br><span class="line">                subdomain: gitlab</span><br><span class="line">                proto:</span><br><span class="line">                        http: 8099</span><br><span class="line">                        https: 8099</span><br></pre></td></tr></table></figure>
+
+<h2 id="添加自启动"><a href="#添加自启动" class="headerlink" title="添加自启动"></a>添加自启动</h2><ol>
+<li>Server 端<figure class="highlight plain"><table><tr><td class="code"><pre><span class="line">[Unit]</span><br><span class="line">Description=ngrokd</span><br><span class="line">After=network.target</span><br><span class="line">Wants=network.target</span><br><span class="line"></span><br><span class="line">[Service]</span><br><span class="line">TimeoutStartSec=30</span><br><span class="line">ExecStart=/usr/bin/ngrokd -domain=eshaw.work</span><br><span class="line">ExecStop=/bin/kill $MAINPID</span><br><span class="line">Restart=1</span><br><span class="line"></span><br><span class="line">[Install]</span><br><span class="line">WantedBy=multi-user.targe</span><br></pre></td></tr></table></figure></li>
+<li>Client 端<figure class="highlight plain"><table><tr><td class="code"><pre><span class="line">[Unit]</span><br><span class="line">Description=ngrok</span><br><span class="line">After=network.target</span><br><span class="line">Wants=network.target</span><br><span class="line"></span><br><span class="line">[Service]</span><br><span class="line">TimeoutStartSec=30</span><br><span class="line">ExecStart=/usr/bin/ngrok -config=~/ngrok.yml start ssh</span><br><span class="line">ExecStop=/bin/kill $MAINPID</span><br><span class="line">Restart=1</span><br><span class="line"></span><br><span class="line">[Install]</span><br><span class="line">WantedBy=multi-user.targe</span><br></pre></td></tr></table></figure>
+<h1 id="完整脚本"><a href="#完整脚本" class="headerlink" title="完整脚本"></a><span id="script">完整脚本</span></h1></li>
+</ol>
+<figure class="highlight plain"><table><tr><td class="code"><pre><span class="line">#!/bin/sh</span><br><span class="line"></span><br><span class="line"></span><br><span class="line"></span><br><span class="line"># 注意修改 domain ！！</span><br><span class="line">export NGROK_DOMAIN=&quot;eshaw.work&quot;</span><br><span class="line"></span><br><span class="line"># 配置Golang环境 </span><br><span class="line">wget https://dl.google.com/go/go1.14.4.linux-amd64.tar.gz</span><br><span class="line">tar -C /usr/local -xzf go1.14.4.linux-amd64.tar.gz</span><br><span class="line"></span><br><span class="line"># ngrok 下载 </span><br><span class="line">git clone https://github.com/inconshreveable/ngrok.git</span><br><span class="line"></span><br><span class="line"># 配置 ngrok 环境变量</span><br><span class="line">export GOPATH=/usr/local/ngrok/</span><br><span class="line"></span><br><span class="line">cd ./ngrok</span><br><span class="line"></span><br><span class="line"># export </span><br><span class="line">export GOPATH=/usr/local/ngrok/</span><br><span class="line">export PATH=$PATH:/usr/local/go/bin</span><br><span class="line">export NGROK_DOMAIN=&quot;eshaw.work&quot;</span><br><span class="line"></span><br><span class="line"># 创建证书</span><br><span class="line">openssl genrsa -out rootCA.key 2048</span><br><span class="line">openssl req -x509 -new -nodes -key rootCA.key -subj &quot;/CN=$NGROK_DOMAIN&quot; -days 5000 -out rootCA.pem</span><br><span class="line">openssl genrsa -out server.key 2048</span><br><span class="line">openssl req -new -key server.key -subj &quot;/CN=$NGROK_DOMAIN&quot; -out server.csr</span><br><span class="line">openssl x509 -req -in server.csr -CA rootCA.pem -CAkey rootCA.key -CAcreateserial -out server.crt -days 5000</span><br><span class="line"></span><br><span class="line">cp -r rootCA.pem assets/client/tls/ngrokroot.crt</span><br><span class="line">cp -r server.crt assets/server/tls/snakeoil.crt</span><br><span class="line">cp -r server.key assets/server/tls/snakeoil.key</span><br><span class="line"></span><br><span class="line"></span><br><span class="line"># 编译 server</span><br><span class="line">GOOS=linux GOARCH=amd64 make release-server</span><br><span class="line"></span><br><span class="line"># 编译 client</span><br><span class="line">GOOS=linux GOARCH=amd64 make release-client</span><br><span class="line"></span><br><span class="line"></span><br><span class="line"># copy 可执行文件到 /usr/bin</span><br><span class="line"># cp ./bin/ngrok /usr/bin</span><br><span class="line"># cp ./bin/ngrokd /usr/bin </span><br><span class="line"># 服务器端执行 ngrokd -domain=&quot;eshaw.work&quot;</span><br><span class="line"></span><br><span class="line"></span><br><span class="line"># 客户端执行 ngrok -config=~/ngrok.yml start ssh http</span><br></pre></td></tr></table></figure>
+
+]]></content>
+      <tags>
+        <tag>内网穿透</tag>
+      </tags>
+  </entry>
+  <entry>
     <title>阅读论文的三个步骤（Three Pass）</title>
     <url>/2020/03/13/HowToReadAPaper/</url>
     <content><![CDATA[<h1 id="第一步：快速浏览以窥全貌（5-10分钟）"><a href="#第一步：快速浏览以窥全貌（5-10分钟）" class="headerlink" title="第一步：快速浏览以窥全貌（5~10分钟）"></a>第一步：快速浏览以窥全貌（5~10分钟）</h1><p>快速浏览以掌握这篇论文的梗要（背景、主题以及结论），以决定是否继续阅读。基本步骤如下（5~10分钟）：</p><ol>
